@@ -232,4 +232,9 @@ public enum APIRequest {
     public func send<Result: APIResultType>(api: Web3API) async throws -> APIResponse<Result> {
         try await APIRequest.send(apiRequest: self, with: api)
     }
+
+    public func send<Result: APIResultType>(api: Web3API) async throws -> Result {
+        try await APIRequest.send(apiRequest: self, with: api)
+    }
+
 }

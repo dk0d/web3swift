@@ -34,7 +34,7 @@ public class Web3HttpAPI: Web3API {
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
             urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
             urlRequest.httpMethod = APIRequest.getNetwork.method
-            urlRequest.httpBody = APIRequest.getNetwork.requestEncoded
+            urlRequest.httpBody = APIRequest.getNetwork.jsonRPCEncoded
             do {
                 let response: APIResponse<UInt> = try await APIRequest.send(urlRequest: urlRequest, with: session)
                 self.chain = Chain.from(response.result)

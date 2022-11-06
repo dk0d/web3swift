@@ -9,6 +9,54 @@ import Foundation
 import BigInt
 
 extension APIRequest {
+
+    public static func send<Result: APIResultType>(apiRequest: APIRequest, with api: Web3API) async throws -> Result {
+        guard let request = setup(apiRequest, with: api) else { throw Web3Error.dataError }
+        debugPrint(request.url)
+        return try await APIRequest.send(urlRequest: request, with: api.session)
+    }
+
+    public static func send<Result: APIResultType>(urlRequest: URLRequest, with session: URLSession) async throws -> Result {
+        let (data, response) = try await session.data(for: urlRequest)
+
+        if let response = response as? HTTPURLResponse {
+            guard 200..<400 ~= response.statusCode else {
+                if 400..<500 ~= response.statusCode {
+                    throw Web3Error.clientError(code: response.statusCode)
+                } else {
+                    throw Web3Error.serverError(code: response.statusCode)
+                }
+            }
+        }
+
+        if let error = (try? JSONDecoder().decode(JsonRpcErrorObject.self, from: data))?.error {
+            guard let parsedErrorCode = error.parsedErrorCode else {
+                throw Web3Error.nodeError(desc: "\(error.message)\nError code: \(error.code)")
+            }
+            let description = "\(parsedErrorCode.errorName). Error code: \(error.code). \(error.message)"
+            switch parsedErrorCode {
+            case .parseError, .invalidParams:
+                throw Web3Error.inputError(desc: description)
+            case .methodNotFound, .invalidRequest:
+                throw Web3Error.processingError(desc: description)
+            case .internalError, .serverError:
+                throw Web3Error.nodeError(desc: description)
+            }
+        }
+
+        /// This bit of code is purposed to work with literal types that comes in ``Response`` in hexString type.
+        /// Currently it's just `Data` and any kind of Integers `(U)Int`, `Big(U)Int`.
+        if let LiteralType = Result.self as? LiteralInitiableFromString.Type {
+            guard let responseAsString = try? JSONDecoder().decode(APIResponse<String>.self, from: data) else { throw Web3Error.dataError }
+            guard let literalValue = LiteralType.init(from: responseAsString.result) else { throw Web3Error.dataError }
+            /// `literalValue` conforms `LiteralInitiableFromString`, that conforming to an `APIResponseType` type, so it's never fails.
+            guard let result = literalValue as? Result else { throw Web3Error.typeError }
+            return result
+        }
+        return try APIRequestCoder.standard.decode(data)
+    }
+
+
     public static func send<Result: APIResultType>(apiRequest: APIRequest, with api: Web3API) async throws -> APIResponse<Result> {
         guard let request = setup(apiRequest, with: api) else { throw Web3Error.dataError }
         debugPrint(request.url)
@@ -16,15 +64,19 @@ extension APIRequest {
     }
 
     static func setup(_ apiRequest: APIRequest, with api: Web3API) -> URLRequest? {
-        guard var components = URLComponents(url: api.url, resolvingAgainstBaseURL: true) else { return nil }
+        guard var components = URLComponents(url: api.url, resolvingAgainstBaseURL: false) else { return nil }
         var httpBody: Data? = nil
+
+        if case let .custom(path, _) = apiRequest,
+           let path {
+            components.path += path.hasPrefix("/") ? path : "/\(path)"
+        }
+
         switch apiRequest.rest {
-        case .GET(let path, let params):
-            if let path { components.path = path.hasPrefix("/") ? path : "/\(path)" }
+        case .GET(let params):
             if let qi = params?.queryItems { components.queryItems = qi }
-        case .POST(let path, _):
-            if let path { components.path = path.hasPrefix("/") ? path : "/\(path)" }
-            httpBody = apiRequest.requestEncoded
+        case .POST:
+            httpBody = apiRequest.jsonRPCEncoded
         }
         guard let url = components.url else { return nil }
 
@@ -78,7 +130,7 @@ extension APIRequest {
             guard let result = literalValue as? Result else { throw Web3Error.typeError }
             return APIResponse(id: responseAsString.id, jsonrpc: responseAsString.jsonrpc, result: result)
         }
-        return try JSONDecoder().decode(APIResponse<Result>.self, from: data)
+        return try APIRequestCoder.standard.decode(data)
     }
 }
 

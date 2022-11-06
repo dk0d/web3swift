@@ -9,7 +9,7 @@ import Foundation
 
 extension APIRequest {
 
-    public var requestEncoded: Data { rest.requestEncoded }
+    public var jsonRPCEncoded: Data { rest.jsonRPCEncoded }
 
     public var rest: REST {
         switch self {
@@ -102,7 +102,7 @@ extension APIRequest {
         case .custom(_, let rest):
             switch rest {
             case .POST(let m, _): return m ?? ""
-            case .GET(let m, _): return m ?? ""
+            case .GET(_): return ""
             }
         }
     }

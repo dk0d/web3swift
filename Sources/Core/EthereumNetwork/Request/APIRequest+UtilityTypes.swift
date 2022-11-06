@@ -17,9 +17,9 @@ public struct APIResponse<Result>: Decodable where Result: APIResultType {
 
 public enum REST {
     case POST(_ method: String?, _ params: RequestParameters?)
-    case GET(_ method: String?, _ params: RequestParameters?)
+    case GET(_ params: RequestParameters?)
 
-    public static var emptyGet: REST { .GET(nil,nil) }
+    public static var emptyGet: REST { .GET(nil) }
     public static var emptyPost: REST { .POST(nil, nil) }
 
     var name: String {
@@ -31,23 +31,23 @@ public enum REST {
         }
     }
 
-    var request: RequestBody {
+    var jsonRPCBody: JSONRPCBody {
         switch self {
-        case .GET(let method, let params):
-            return RequestBody(method: method ?? "", params: params ?? .array([]))
+        case .GET(let params):
+            return JSONRPCBody(method: "", params: params ?? .array([]))
         case .POST(let method, let params):
-            return RequestBody(method: method ?? "", params: params ?? .array([]))
+            return JSONRPCBody(method: method ?? "", params: params ?? .array([]))
         }
     }
 
-    public var requestEncoded: Data {
+    public var jsonRPCEncoded: Data {
         // this is safe to force try this here
         // Because request must failed to compile if it not conformable with `Encodable` protocol
-        try! APIRequestCoder.standard.encode(request)
+        try! APIRequestCoder.standard.encode(jsonRPCBody)
     }
 }
 
-public struct RequestBody: Encodable {
+public struct JSONRPCBody: Encodable {
     var jsonrpc = "2.0"
     var id = Counter.increment()
     var method: String

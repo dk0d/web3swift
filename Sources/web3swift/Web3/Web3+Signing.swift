@@ -9,6 +9,7 @@ import Core
 import Foundation
 
 public enum Web3Signer {
+
     public static func signTX(
         transaction: inout CodableTransaction,
         keystore: AbstractKeystore,
@@ -49,10 +50,11 @@ public enum Web3Signer {
     ) throws -> Data {
         let domainSeparator: EIP712Hashable = EIP712Domain(chainId: chainId, verifyingContract: verifyingContract)
         let hash = try eip712encode(domainSeparator: domainSeparator, message: eip712Hashable)
-        guard let signature = try Web3Signer.signPersonalMessage(hash,
-                                                                 keystore: keystore,
-                                                                 account: account,
-                                                                 password: password ?? "")
+        guard let signature = try Web3Signer.signPersonalMessage(
+            hash,
+            keystore: keystore,
+            account: account,
+            password: password ?? "")
         else {
             throw Web3Error.dataError
         }
