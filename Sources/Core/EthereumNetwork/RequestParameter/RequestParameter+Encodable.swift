@@ -25,31 +25,24 @@ extension RequestParameter: Encodable {
      //> [12,\"this\",12.2,[12.2,12.4]]`
      ```
      */
-    func encode(to encoder: Encoder) throws {
-        var enumContainer = encoder.singleValueContainer()
-        /// force casting in this switch is safe because
-        /// each `rawValue` forced to casts only in exact case which is runs based on `rawValue` type
-        // swiftlint:disable force_cast
-        switch type(of: self.rawValue) {
-        case is Int.Type: try enumContainer.encode(rawValue as! Int)
-        case is [Int].Type: try enumContainer.encode(rawValue as! [Int])
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        /// force casting is not needed
 
-        case is UInt.Type: try enumContainer.encode(rawValue as! UInt)
-        case is [UInt].Type: try enumContainer.encode(rawValue as! [UInt])
-
-        case is String.Type: try enumContainer.encode(rawValue as! String)
-        case is [String].Type: try enumContainer.encode(rawValue as! [String])
-
-        case is Double.Type: try enumContainer.encode(rawValue as! Double)
-        case is [Double].Type: try enumContainer.encode(rawValue as! [Double])
-
-        case is Bool.Type: try enumContainer.encode(rawValue as! Bool)
-        case is [Bool].Type: try enumContainer.encode(rawValue as! [Bool])
-
-        case is CodableTransaction.Type: try enumContainer.encode(rawValue as! CodableTransaction)
-        case is EventFilterParameters.Type: try enumContainer.encode(rawValue as! EventFilterParameters)
-        default: break /// can't be executed, coz possible `self.rawValue` types are strictly defined in it's inplementation.`
+        switch self {
+        case .int(let value): try container.encode(value)
+        case .intArray(let value): try container.encode(value)
+        case .uint(let value): try container.encode(value)
+        case .uintArray(let value): try container.encode(value)
+        case .double(let value): try container.encode(value)
+        case .doubleArray(let value): try container.encode(value)
+        case .string(let value): try container.encode(value)
+        case .stringArray(let value): try container.encode(value)
+        case .bool(let value): try container.encode(value)
+        case .boolArray(let value): try container.encode(value)
+        case .transaction(let value): try container.encode(value)
+        case .eventFilter(let value): try container.encode(value)
+        case .dictionary(let value): try container.encode(value)
         }
-        // swiftlint:enable force_cast
     }
 }

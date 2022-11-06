@@ -16,7 +16,7 @@ extension RequestParameter: RawRepresentable {
 
      You're totally free to use explicit and more convenience member init as `RequestParameter.int(12)` in your code.
      */
-    init?(rawValue: APIRequestParameterType) {
+    public init?(rawValue: APIRequestParameterType) {
         /// force casting in this switch is safe because
         /// each `rawValue` forced to casts only in exact case which is runs based on `rawValues` type
         // swiftlint:disable force_cast
@@ -39,13 +39,16 @@ extension RequestParameter: RawRepresentable {
 
         case is [CodableTransaction].Type: self = .transaction(rawValue as! CodableTransaction)
         case is [EventFilterParameters].Type: self = .eventFilter(rawValue as! EventFilterParameters)
+
+        case is [String: RequestParameter].Type: self = .dictionary(rawValue as! [String: RequestParameter])
+
         default: return nil
         }
         // swiftlint:enable force_cast
     }
 
     /// Returning associated value of the enum case.
-    var rawValue: APIRequestParameterType {
+    public var rawValue: APIRequestParameterType {
         // cases can't be merged, coz it causes compile error since it couldn't predict exact type that will be returned.
         switch self {
         case let .int(value): return value
@@ -65,6 +68,10 @@ extension RequestParameter: RawRepresentable {
 
         case let .transaction(value): return value
         case let .eventFilter(value): return value
+
+        case let .dictionary(value): return value
         }
     }
 }
+
+extension Dictionary: APIRequestParameterType where Key == String, Value == RequestParameter {}

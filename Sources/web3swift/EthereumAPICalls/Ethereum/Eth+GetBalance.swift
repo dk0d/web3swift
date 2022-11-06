@@ -7,9 +7,9 @@ import Foundation
 import Core
 import BigInt
 
-extension Web3.Eth {
+extension Web3Provider {
     public func getBalance(for address: EthereumAddress, onBlock: BlockNumber = .latest) async throws -> BigUInt {
-        let request = APIRequest.getBalance(address.address, onBlock)
-        return try await APIRequest.sendRequest(with: web3.provider, for: request).result
+        let requestCall: APIRequest = .getBalance(address.address, onBlock)
+        return try await APIRequest.send(apiRequest: requestCall, with: api).result
     }
 }

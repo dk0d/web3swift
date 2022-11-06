@@ -7,7 +7,7 @@ import Foundation
 
 extension Dictionary where Key == String, Value: Equatable {
     func keyForValue(value: Value) -> String? {
-        for key in self.keys {
+        for key in keys {
             if self[key] == value {
                 return key
             }

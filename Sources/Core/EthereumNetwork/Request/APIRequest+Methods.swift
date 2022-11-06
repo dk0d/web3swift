@@ -9,28 +9,48 @@ import Foundation
 import BigInt
 
 extension APIRequest {
-    public static func sendRequest<Result>(with provider: Web3Provider, for call: APIRequest) async throws -> APIResponse<Result> {
-        let request = setupRequest(for: call, with: provider)
-        return try await APIRequest.send(uRLRequest: request, with: provider.session)
+    public static func send<Result: APIResultType>(apiRequest: APIRequest, with api: Web3API) async throws -> APIResponse<Result> {
+        guard let request = setup(apiRequest, with: api) else { throw Web3Error.dataError }
+        debugPrint(request.url)
+        return try await APIRequest.send(urlRequest: request, with: api.session)
     }
 
-    static func setupRequest(for call: APIRequest, with provider: Web3Provider) -> URLRequest {
-        var urlRequest = URLRequest(url: provider.url, cachePolicy: .reloadIgnoringCacheData)
+    static func setup(_ apiRequest: APIRequest, with api: Web3API) -> URLRequest? {
+        guard var components = URLComponents(url: api.url, resolvingAgainstBaseURL: true) else { return nil }
+        var httpBody: Data? = nil
+        switch apiRequest.rest {
+        case .GET(let path, let params):
+            if let path { components.path = path.hasPrefix("/") ? path : "/\(path)" }
+            if let qi = params?.queryItems { components.queryItems = qi }
+        case .POST(let path, _):
+            if let path { components.path = path.hasPrefix("/") ? path : "/\(path)" }
+            httpBody = apiRequest.requestEncoded
+        }
+        guard let url = components.url else { return nil }
+
+        var urlRequest = URLRequest(url: url, cachePolicy: .reloadIgnoringCacheData)
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
-        urlRequest.httpMethod = call.method.rawValue
-        urlRequest.httpBody = call.encodedBody
+        urlRequest.httpMethod = apiRequest.rest.name
+        urlRequest.httpBody = httpBody
+
+        for (k, v) in api.headers {
+            urlRequest.setValue(v, forHTTPHeaderField: k)
+        }
+
         return urlRequest
     }
 
-    public static func send<Result>(uRLRequest: URLRequest, with session: URLSession) async throws -> APIResponse<Result> {
-        let (data, response) = try await session.data(for: uRLRequest)
+    public static func send<Result: APIResultType>(urlRequest: URLRequest, with session: URLSession) async throws -> APIResponse<Result> {
+        let (data, response) = try await session.data(for: urlRequest)
 
-        guard 200 ..< 400 ~= response.statusCode else {
-            if 400 ..< 500 ~= response.statusCode {
-                throw Web3Error.clientError(code: response.statusCode)
-            } else {
-                throw Web3Error.serverError(code: response.statusCode)
+        if let response = response as? HTTPURLResponse {
+            guard 200..<400 ~= response.statusCode else {
+                if 400..<500 ~= response.statusCode {
+                    throw Web3Error.clientError(code: response.statusCode)
+                } else {
+                    throw Web3Error.serverError(code: response.statusCode)
+                }
             }
         }
 
@@ -63,7 +83,7 @@ extension APIRequest {
 }
 
 /// JSON RPC Error object. See official specification https://www.jsonrpc.org/specification#error_object
-private struct JsonRpcErrorObject: Decodable {
+fileprivate struct JsonRpcErrorObject: Decodable {
     public let error: RpcError?
 
     class RpcError: Decodable {
@@ -77,7 +97,7 @@ private struct JsonRpcErrorObject: Decodable {
 
 /// For error codes specification see chapter `5.1 Error object`
 /// https://www.jsonrpc.org/specification#error_object
-private enum JsonRpcErrorCode {
+fileprivate enum JsonRpcErrorCode {
     /// -32700
     /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON
     case parseError
@@ -109,7 +129,7 @@ private enum JsonRpcErrorCode {
             return "Invalid parameters"
         case .internalError:
             return "Internal error"
-        case .serverError:
+        case .serverError(_):
             return "Server error"
         }
     }
@@ -127,7 +147,7 @@ private enum JsonRpcErrorCode {
         case -32603:
             return .internalError
         default:
-            if (-32099)...(-32000) ~= code {
+            if ((-32099)...(-32000)).contains(code) {
                 return .serverError(code)
             }
             return nil

@@ -7,9 +7,10 @@ import Foundation
 import BigInt
 import Core
 
-extension Web3.Eth {
-    public func transactionReceipt(_ txHash: Data) async throws -> TransactionReceipt {
-        let request = APIRequest.getTransactionReceipt(txHash.toHexString().addHexPrefix())
-        return try await APIRequest.sendRequest(with: provider, for: request).result
+extension Web3Provider {
+    public func transactionReceipt(_ txhash: Data) async throws -> TransactionReceipt {
+        guard let hexString = String(data: txhash, encoding: .utf8)?.add0x else { throw Web3Error.dataError }
+        let requestCall: APIRequest = .getTransactionReceipt(hexString)
+        return try await APIRequest.send(apiRequest: requestCall, with: api).result
     }
 }

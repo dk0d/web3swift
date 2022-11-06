@@ -75,7 +75,7 @@ class DataConversionTests: LocalTestCase {
 
         print("Testing Base58 Decode \"\(vector)\"")
         guard let resultDecoded = vector.base58DecodedData else { return XCTFail("base58 decode unexpectedly returned nil") }
-        let str = resultDecoded.toHexString().addHexPrefix()
+        let str = resultDecoded.toHexString().add0x
         XCTAssert(str == expected)
 
         print("Testing Base58 Encode \(expected)")
@@ -91,7 +91,7 @@ class DataConversionTests: LocalTestCase {
 
         print("Testing Base58 Decode \"\(vector)\"")
         guard let resultDecoded = vector.base58DecodedData else { return XCTFail("base58 decode unexpectedly returned nil") }
-        let str = resultDecoded.toHexString().addHexPrefix()
+        let str = resultDecoded.toHexString().add0x
         XCTAssert(str == expected)
 
         print("Testing Base58 Encode \(expected)")

@@ -3,18 +3,18 @@
 //  Copyright © 2018 Alex Vlasov. All rights reserved.
 //
 
-import Foundation
 import CryptoSwift
+import Foundation
 
-public struct NameHash {
+public enum NameHash {
     public static func normalizeDomainName(_ domain: String) -> String? {
-        // TODO use ICU4C library later for domain name normalization, althoug f**k it for now, it's few megabytes large piece
+        // TODO: use ICU4C library later for domain name normalization, althoug f**k it for now, it's few megabytes large piece
         let normalized = domain.lowercased()
         return normalized
     }
 
     public static func nameHash(_ domain: String) -> Data? {
-        guard let normalized = NameHash.normalizeDomainName(domain) else {return nil}
+        guard let normalized = NameHash.normalizeDomainName(domain) else { return nil }
         return namehash(normalized)
     }
 
@@ -33,7 +33,7 @@ public struct NameHash {
         if parts.count > 1 {
             remainder = parts[1 ..< parts.count].joined(separator: ".")
         }
-        // TODO here some better normalization can happen
+        // TODO: here some better normalization can happen
         var hashData = Data()
         guard let remainderHash = namehash(remainder) else {
             return nil

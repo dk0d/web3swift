@@ -29,7 +29,7 @@ public struct EIP1559Envelope: EIP2718Envelope {
     // EIP-1559 specific parameters
     public var gasLimit: BigUInt
 
-    var gasPrice: BigUInt?
+    var gasPrice: BigUInt? = nil
 
     /// Value of the tip to the miner for transaction processing.
     ///
@@ -61,7 +61,7 @@ public struct EIP1559Envelope: EIP2718Envelope {
         toReturn += "Max fee per gas: " + String(describing: maxFeePerGas) + "\n"
         toReturn += "To: " + self.to.address + "\n"
         toReturn += "Value: " + String(describing: self.value) + "\n"
-        toReturn += "Data: " + self.data.toHexString().addHexPrefix().lowercased() + "\n"
+        toReturn += "Data: " + self.data.toHexString().add0x.lowercased() + "\n"
         toReturn += "Access List: " + String(describing: accessList) + "\n"
         toReturn += "v: " + String(self.v) + "\n"
         toReturn += "r: " + String(self.r) + "\n"
@@ -176,7 +176,7 @@ extension EIP1559Envelope {
 
         // swiftlint:disable force_unwrapping
         switch rlpItem[RlpKey.destination.rawValue]!.content {
-        // swiftlint:enable force_unwrapping
+            // swiftlint:enable force_unwrapping
         case .noItem:
             self.to = EthereumAddress.contractDeploymentAddress()
         case .data(let addressData):
@@ -185,7 +185,9 @@ extension EIP1559Envelope {
             } else if addressData.count == 20 {
                 guard let addr = EthereumAddress(addressData) else { return nil }
                 self.to = addr
-            } else { return nil }
+            } else {
+                return nil
+            }
         case .list:
             return nil
         }
@@ -206,7 +208,7 @@ extension EIP1559Envelope {
             var newList: [AccessListEntry] = []
             for index in 0...(itemCount - 1) {
                 guard let itemData = accessData[index] else { return nil }
-                guard let newItem = AccessListEntry(rlpItem: itemData)  else { return nil }
+                guard let newItem = AccessListEntry(rlpItem: itemData) else { return nil }
                 newList.append(newItem)
             }
             self.accessList = newList
@@ -214,6 +216,7 @@ extension EIP1559Envelope {
     }
 
     // memberwise
+
     public init(to: EthereumAddress, nonce: BigUInt = 0,
                 chainID: BigUInt = 0, value: BigUInt = 0, data: Data,
                 maxPriorityFeePerGas: BigUInt = 0, maxFeePerGas: BigUInt = 0, gasLimit: BigUInt = 0,
@@ -234,6 +237,7 @@ extension EIP1559Envelope {
     }
 
 //    public mutating func applyTransaction(_ transaction: CodableTransaction) {
+
 //        // type cannot be changed here, and is ignored
 //        self.nonce = transaction.resolveNonce(self.nonce)
 //        self.maxPriorityFeePerGas = transaction.resolveMaxPriorityFeePerGas(self.maxPriorityFeePerGas)

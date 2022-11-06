@@ -3,12 +3,11 @@
 //  Copyright © 2018 Alex Vlasov. All rights reserved.
 //
 
-import Foundation
 import BigInt
 import Core
+import Foundation
 
-extension Web3 {
-
+public extension Web3 {
     //    request                 = "ethereum" ":" [ "pay-" ]target_address [ "@" chain_id ] [ "/" function_name ] [ "?" parameters ]
     //    target_address          = ethereum_address
     //    chain_id                = 1*DIGIT
@@ -20,7 +19,7 @@ extension Web3 {
     //    value                   = number / ethereum_address / STRING
     //    number                  = [ "-" / "+" ] *DIGIT [ "." 1*DIGIT ] [ ( "e" / "E" ) [ 1*DIGIT ] [ "+" UNIT ]
 
-    public struct EIP681Code {
+    struct EIP681Code {
         public struct EIP681Parameter {
             public var type: ABI.Element.ParameterType
             public var value: AnyObject
@@ -30,11 +29,12 @@ extension Web3 {
                 self.value = value
             }
         }
+
         public var isPayRequest: Bool
         public var targetAddress: TargetAddress
         public var chainID: BigUInt?
         public var functionName: String?
-        public var parameters: [EIP681Parameter] = [EIP681Parameter]()
+        public var parameters: [EIP681Parameter] = .init()
         public var gasLimit: BigUInt?
         public var gasPrice: BigUInt?
         public var amount: BigUInt?
@@ -43,6 +43,7 @@ extension Web3 {
         public enum TargetAddress {
             case ethereumAddress(EthereumAddress)
             case ensAddress(String)
+
             public init(_ string: String) {
                 if let ethereumAddress = EthereumAddress(string) {
                     self = TargetAddress.ethereumAddress(ethereumAddress)
@@ -60,7 +61,7 @@ extension Web3 {
         public func makeEIP681Link(urlEncode: Bool = false) -> String? {
             let address: String
             switch targetAddress {
-            case .ethereumAddress(let ethereumAddress):
+            case let .ethereumAddress(ethereumAddress):
                 address = ethereumAddress.address
             case let .ensAddress(ensAdress):
                 address = ensAdress
@@ -72,8 +73,8 @@ extension Web3 {
             if !parameters.isEmpty {
                 let queryParameters: [String] = parameters.compactMap { eip681Parameter in
                     guard let queryValue = Web3
-                        .EIP681CodeEncoder
-                        .encodeFunctionArgument(eip681Parameter.type, eip681Parameter.value)
+                    .EIP681CodeEncoder
+                    .encodeFunctionArgument(eip681Parameter.type, eip681Parameter.value)
                     else {
                         return nil
                     }
@@ -88,7 +89,7 @@ extension Web3 {
         }
     }
 
-    public struct EIP681CodeEncoder {
+    enum EIP681CodeEncoder {
         public static func encodeFunctionArgument(_ inputType: ABI.Element.ParameterType,
                                                   _ rawValue: AnyObject) -> String? {
             switch inputType {
@@ -118,7 +119,7 @@ extension Web3 {
                 } else if let bytes = rawValue as? Data {
                     value = BigUInt(bytes)
                 } else if let string = rawValue as? String {
-                    value = BigUInt(string, radix: 10) ?? BigUInt(string.stripHexPrefix(), radix: 16)
+                    value = BigUInt(string, radix: 10) ?? BigUInt(string.drop0x, radix: 16)
                 } else if let number = rawValue as? Int {
                     value = BigUInt(exactly: number)
                 } else if let number = rawValue as? Double {
@@ -136,7 +137,7 @@ extension Web3 {
                 } else if let bytes = rawValue as? Data {
                     value = BigInt(bytes)
                 } else if let string = rawValue as? String {
-                    value = BigInt(string, radix: 10) ?? BigInt(string.stripHexPrefix(), radix: 16)
+                    value = BigInt(string, radix: 10) ?? BigInt(string.drop0x, radix: 16)
                 } else if let number = rawValue as? Int {
                     value = BigInt(exactly: number)
                 } else if let number = rawValue as? Double {
@@ -155,14 +156,14 @@ extension Web3 {
                 return nil
             case .dynamicBytes:
                 if let bytes = rawValue as? Data {
-                    return bytes.toHexString().addHexPrefix()
+                    return bytes.toHexString().add0x
                 } else if let bytes = rawValue as? [UInt8] {
-                    return Data(bytes).toHexString().addHexPrefix()
+                    return Data(bytes).toHexString().add0x
                 } else if let string = rawValue as? String {
                     if let bytes = Data.fromHex(string) {
-                        return bytes.toHexString().addHexPrefix()
+                        return bytes.toHexString().add0x
                     }
-                    return string.data(using: .utf8)?.toHexString().addHexPrefix()
+                    return string.data(using: .utf8)?.toHexString().add0x
                 }
                 return nil
             case let .bytes(length):
@@ -181,7 +182,7 @@ extension Web3 {
 
                 if let data = data,
                    data.count == length {
-                    return data.toHexString().addHexPrefix()
+                    return data.toHexString().add0x
                 }
                 return nil
             case .bool:
@@ -214,9 +215,9 @@ extension Web3 {
                         encodeFunctionArgument(type, object)
                     }
 
-                    if length != 0 && UInt64(mappedArray.count) == length {
+                    if length != 0, UInt64(mappedArray.count) == length {
                         return "[\(mappedArray.joined(separator: ","))]"
-                    } else if length == 0 && mappedArray.count == array.count {
+                    } else if length == 0, mappedArray.count == array.count {
                         return "[\(mappedArray.joined(separator: ","))]"
                     }
                 }
@@ -229,25 +230,25 @@ extension Web3 {
         }
     }
 
-    public struct EIP681CodeParser {
+    enum EIP681CodeParser {
         //  static var addressRegex = "^(pay-)?([0-9a-zA-Z]+)(@[0-9]+)?"
         static var addressRegex = "^(pay-)?([0-9a-zA-Z.]+)(@[0-9]+)?\\/?(.*)?$"
 
         public static func parse(_ data: Data) async -> EIP681Code? {
-            guard let string = String(data: data, encoding: .utf8) else {return nil}
+            guard let string = String(data: data, encoding: .utf8) else { return nil }
             return await parse(string)
         }
 
         public static func parse(_ string: String) async -> EIP681Code? {
-            guard string.hasPrefix("ethereum:") else {return nil}
+            guard string.hasPrefix("ethereum:") else { return nil }
             let striped = string.components(separatedBy: "ethereum:")
-            guard striped.count == 2 else {return nil}
-            guard let encoding = striped[1].removingPercentEncoding else {return nil}
+            guard striped.count == 2 else { return nil }
+            guard let encoding = striped[1].removingPercentEncoding else { return nil }
             //  guard let url = URL.init(string: encoding) else {return nil}
             let matcher = try! NSRegularExpression(pattern: addressRegex, options: NSRegularExpression.Options.dotMatchesLineSeparators)
             let match = matcher.matches(in: encoding, options: NSRegularExpression.MatchingOptions.anchored, range: encoding.fullNSRange)
-            guard match.count == 1 else {return nil}
-            guard match[0].numberOfRanges == 5 else {return nil}
+            guard match.count == 1 else { return nil }
+            guard match[0].numberOfRanges == 5 else { return nil }
             var addressString: String?
             var chainIDString: String?
             var tail: String?
@@ -255,16 +256,16 @@ extension Web3 {
             //      let payModifierString = String(encoding[payModifierRange])
             //      print(payModifierString)
             //  }
-            if  let addressRange = Range(match[0].range(at: 2), in: encoding) {
+            if let addressRange = Range(match[0].range(at: 2), in: encoding) {
                 addressString = String(encoding[addressRange])
             }
-            if  let chainIDRange = Range(match[0].range(at: 3), in: encoding) {
+            if let chainIDRange = Range(match[0].range(at: 3), in: encoding) {
                 chainIDString = String(encoding[chainIDRange])
             }
-            if  let tailRange = Range(match[0].range(at: 4), in: encoding) {
+            if let tailRange = Range(match[0].range(at: 4), in: encoding) {
                 tail = String(encoding[tailRange])
             }
-            guard let address = addressString else {return nil}
+            guard let address = addressString else { return nil }
             let targetAddress = EIP681Code.TargetAddress(address)
 
             var code = EIP681Code(targetAddress)
@@ -275,22 +276,22 @@ extension Web3 {
             if tail == nil {
                 return code
             }
-            guard let components = URLComponents(string: tail!.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? tail!) else {return code}
+            guard let components = URLComponents(string: tail!.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? tail!) else { return code }
             if components.path == "" {
                 code.isPayRequest = true
             } else {
                 code.functionName = components.path
             }
-            guard let queryItems = components.queryItems else {return code}
-            var inputNumber: Int = 0
+            guard let queryItems = components.queryItems else { return code }
+            var inputNumber = 0
             var inputs = [ABI.Element.InOut]()
             for comp in queryItems {
                 if let inputType = try? ABITypeParser.parseTypeString(comp.name) {
                     guard let rawValue = comp.value,
                           let functionArgument = await parseFunctionArgument(inputType,
-                                                                             rawValue.trimmingCharacters(in: .whitespacesAndNewlines),
-                                                                             chainID: code.chainID ?? 0,
-                                                                             inputNumber: inputNumber)
+                              rawValue.trimmingCharacters(in: .whitespacesAndNewlines),
+                              chainID: code.chainID ?? 0,
+                              inputNumber: inputNumber)
                     else { continue }
 
                     inputs.append(functionArgument.argType)
@@ -299,10 +300,10 @@ extension Web3 {
                 } else {
                     switch comp.name {
                     case "value":
-                        guard let value = comp.value else {return nil}
+                        guard let value = comp.value else { return nil }
                         let splittedValue = value.split(separator: "e")
                         if splittedValue.count <= 1 {
-                            guard let val = BigUInt(value, radix: 10) else {return nil }
+                            guard let val = BigUInt(value, radix: 10) else { return nil }
                             code.amount = val
                         } else if splittedValue.count == 2 {
                             guard let power = Double(splittedValue[1]) else { return nil }
@@ -317,20 +318,24 @@ extension Web3 {
                                 a = a / am
                                 guard let number = BigUInt(stringNumber, radix: 10) else { return nil }
                                 code.amount = number * a
-                            } else { return nil }
-                        } else { return nil }
+                            } else {
+                                return nil
+                            }
+                        } else {
+                            return nil
+                        }
 
                     case "gas":
-                        guard let value = comp.value else {return nil}
-                        guard let val = BigUInt(value, radix: 10) else {return nil}
+                        guard let value = comp.value else { return nil }
+                        guard let val = BigUInt(value, radix: 10) else { return nil }
                         code.gasLimit = val
                     case "gasLimit":
-                        guard let value = comp.value else {return nil}
-                        guard let val = BigUInt(value, radix: 10) else {return nil}
+                        guard let value = comp.value else { return nil }
+                        guard let val = BigUInt(value, radix: 10) else { return nil }
                         code.gasLimit = val
                     case "gasPrice":
-                        guard let value = comp.value else {return nil}
-                        guard let val = BigUInt(value, radix: 10) else {return nil}
+                        guard let value = comp.value else { return nil }
+                        guard let val = BigUInt(value, radix: 10) else { return nil }
                         code.gasPrice = val
                     default:
                         continue
@@ -347,38 +352,43 @@ extension Web3 {
             return code
         }
 
-        private static func parseFunctionArgument(_ inputType: ABI.Element.ParameterType,
-                                                  _ rawValue: String,
-                                                  chainID: BigUInt,
-                                                  inputNumber: Int) async -> FunctionArgument? {
+        private static func parseFunctionArgument(
+            _ inputType: ABI.Element.ParameterType,
+            _ rawValue: String,
+            chainID: BigUInt,
+            inputNumber: Int
+        ) async -> FunctionArgument? {
+
             var nativeValue: AnyObject?
             switch inputType {
             case .address:
                 let val = EIP681Code.TargetAddress(rawValue)
                 switch val {
-                case .ethereumAddress(let ethereumAddress):
+                case let .ethereumAddress(ethereumAddress):
                     nativeValue = ethereumAddress as AnyObject
-                case .ensAddress(let ens):
-                    do {
-                        let web = await Web3(provider: InfuraProvider(Networks.fromInt(UInt(chainID)) ?? Networks.Mainnet)!)
-                        let ensModel = ENS(web3: web)
-                        try await ensModel?.setENSResolver(withDomain: ens)
-                        let address = try await ensModel?.getAddress(forNode: ens)
-                        nativeValue = address as AnyObject
-                    } catch {
-                        return nil
-                    }
+                case let .ensAddress(ens):
+                    #warning("ENS Must be refactored")
+                    fatalError("ENS Not refactored")
+//                    do {
+//                        let web = await Web3(api: InfuraAPI(Networks.fromInt(UInt(chainID)) ?? Networks.Mainnet)!)
+//                        let ensModel = ENS(web3: web)
+//                        try await ensModel?.setENSResolver(withDomain: ens)
+//                        let address = try await ensModel?.getAddress(forNode: ens)
+//                        nativeValue = address as AnyObject
+//                    } catch {
+//                        return nil
+//                    }
                 }
             case .uint(bits: _):
                 if let val = BigUInt(rawValue, radix: 10) {
                     nativeValue = val as AnyObject
-                } else if let val = BigUInt(rawValue.stripHexPrefix(), radix: 16) {
+                } else if let val = BigUInt(rawValue.drop0x, radix: 16) {
                     nativeValue = val as AnyObject
                 }
             case .int(bits: _):
                 if let val = BigInt(rawValue, radix: 10) {
                     nativeValue = val as AnyObject
-                } else if let val = BigInt(rawValue.stripHexPrefix(), radix: 16) {
+                } else if let val = BigInt(rawValue.drop0x, radix: 16) {
                     nativeValue = val as AnyObject
                 }
             case .string:
@@ -408,13 +418,15 @@ extension Web3 {
                 var rawValues: [String] = []
                 if case .array = type {
                     guard let internalArrays = splitArrayOfArrays(rawValue),
-                          (length == 0 || UInt64(internalArrays.count) == length) else { return nil }
+                          length == 0 || UInt64(internalArrays.count) == length
+                    else { return nil }
                     rawValues = internalArrays
                 } else if case .tuple = type {
                     // TODO: implement!
                 } else if case .string = type {
                     guard let strings = splitArrayOfStrings(rawValue),
-                          (length == 0 || UInt64(strings.count) == length) else { return nil }
+                          length == 0 || UInt64(strings.count) == length
+                    else { return nil }
                     rawValues = strings
                 } else {
                     let rawValue = String(rawValue.dropFirst().dropLast())
@@ -425,19 +437,20 @@ extension Web3 {
 
                 for value in rawValues {
                     let intermidiateValue = await parseFunctionArgument(type,
-                                                                        value,
-                                                                        chainID: chainID,
-                                                                        inputNumber: inputNumber)?
-                        .parameter
-                        .value
+                        value,
+                        chainID: chainID,
+                        inputNumber: inputNumber)?
+                    .parameter
+                    .value
                     if let intermidiateValue = intermidiateValue {
                         nativeValueArray.append(intermidiateValue)
                     }
                 }
                 nativeValue = nativeValueArray as AnyObject
 
-                guard nativeValueArray.count == rawValues.count &&
-                        (length == 0 || UInt64(rawValues.count) == length) else { return nil }
+                guard nativeValueArray.count == rawValues.count,
+                      length == 0 || UInt64(rawValues.count) == length
+                else { return nil }
             case .tuple:
                 // TODO: implement!
                 return nil
@@ -446,7 +459,7 @@ extension Web3 {
 
             guard let nativeValue = nativeValue else { return nil }
             return FunctionArgument(ABI.Element.InOut(name: String(inputNumber), type: inputType),
-                                    EIP681Code.EIP681Parameter(type: inputType, value: nativeValue))
+                EIP681Code.EIP681Parameter(type: inputType, value: nativeValue))
         }
 
         // MARK: - Parsing functions for complex data structures
@@ -467,13 +480,14 @@ extension Web3 {
             let match = squareBracketRegex.firstMatch(in: rawValue, range: rawValue.fullNSRange)
 
             guard let bracketsCount = match?.range.upperBound,
-                  bracketsCount > 0 else {
+                  bracketsCount > 0
+            else {
                 return nil
             }
 
             let splitRegex = try! NSRegularExpression(pattern: "(\\]){\(bracketsCount)},(\\[){\(bracketsCount)}")
             var indices: [Int] = splitRegex.matches(in: rawValue, range: rawValue.fullNSRange)
-                .map { $0.range.lowerBound + bracketsCount }
+                                           .map { $0.range.lowerBound + bracketsCount }
             if !indices.isEmpty {
                 indices.append(rawValue.count)
                 var prevIndex = 0
@@ -510,17 +524,16 @@ extension Web3 {
 
             let elementsBoundary = try! NSRegularExpression(pattern: "\",\"")
             var indices = Array(elementsBoundary
-                .matches(in: rawValue, range: rawValue.fullNSRange)
-                .map { result in
-                    result.range.lowerBound + 1
-                })
+            .matches(in: rawValue, range: rawValue.fullNSRange)
+            .map { result in
+                result.range.lowerBound + 1
+            })
 
             if !indices.isEmpty {
                 indices.append(rawValue.count)
                 var prevIndex = 0
                 var rawValues = [String]()
                 for index in indices {
-
                     var argument = rawValue[prevIndex..<index]
                     if let index = argument.firstIndex(of: "\""),
                        argument.distance(from: argument.startIndex, to: index) == 0 {

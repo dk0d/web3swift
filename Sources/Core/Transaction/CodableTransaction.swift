@@ -4,8 +4,8 @@
 //
 //  Additions for new transaction types by Mark Loit 2022
 
-import Foundation
 import BigInt
+import Foundation
 
 ///  Structure capable of carying the parameters for any transaction type.
 ///  while all fields in this struct are optional, they are not necessarily
@@ -24,7 +24,7 @@ public struct CodableTransaction {
 
     /// the address of the sender of the transaction recovered from the signature
     public var sender: EthereumAddress? {
-        guard let publicKey = self.recoverPublicKey() else { return nil }
+        guard let publicKey = recoverPublicKey() else { return nil }
         return Utilities.publicToAddress(publicKey)
     }
 
@@ -32,30 +32,31 @@ public struct CodableTransaction {
 
     /// the destination, or contract, address for the transaction
     public var to: EthereumAddress {
-        get { return envelope.to }
+        get { envelope.to }
         set { envelope.to = newValue }
     }
 
     /// signifies the transaction type that this payload is for
     /// indicates what fields should be populated.
     /// this should always be set to give an idea of what other fields to expect
-    public var type: TransactionType { return envelope.type }
+    public var type: TransactionType { envelope.type }
 
     /// the chainId that transaction is targeted for
     /// should be set for all types, except some Legacy transactions (Pre EIP-155)
     /// will not have this set
     public var chainID: BigUInt? {
-        get { return envelope.chainID }
+        get { envelope.chainID }
         set { envelope.chainID = newValue }
     }
 
     /// the native value of the transaction
     public var value: BigUInt {
-        get { return envelope.value }
+        get { envelope.value }
         set { envelope.value = newValue }
     }
 
     // MARK: - Ruins signing and decoding tests if tied to envelop
+
     /// any additional data for the transaction
     public var data: Data
 
@@ -63,33 +64,33 @@ public struct CodableTransaction {
 
     /// the nonce for the transaction
     internal var nonce: BigUInt {
-        get { return envelope.nonce }
+        get { envelope.nonce }
         set { envelope.nonce = newValue }
     }
 
     /// the max number of gas units allowed to process this transaction
     internal var gasLimit: BigUInt {
-        get { return envelope.gasLimit }
-        set { return envelope.gasLimit = newValue }
+        get { envelope.gasLimit }
+        set { envelope.gasLimit = newValue }
     }
 
     /// the price per gas unit for the tranaction (Legacy and EIP-2930 only)
     internal var gasPrice: BigUInt? {
-        get { return envelope.gasPrice }
-        set { return envelope.gasPrice = newValue }
+        get { envelope.gasPrice }
+        set { envelope.gasPrice = newValue }
     }
 
     /// the max base fee per gas unit (EIP-1559 only)
     /// this value must be >= baseFee + maxPriorityFeePerGas
     internal var maxFeePerGas: BigUInt? {
-        get { return envelope.maxFeePerGas }
-        set { return envelope.maxFeePerGas = newValue }
+        get { envelope.maxFeePerGas }
+        set { envelope.maxFeePerGas = newValue }
     }
 
     /// the maximum tip to pay the miner (EIP-1559 only)
     internal var maxPriorityFeePerGas: BigUInt? {
-        get { return envelope.maxPriorityFeePerGas }
-        set { return envelope.maxPriorityFeePerGas = newValue }
+        get { envelope.maxPriorityFeePerGas }
+        set { envelope.maxPriorityFeePerGas = newValue }
     }
 
     public var callOnBlock: BlockNumber?
@@ -101,15 +102,15 @@ public struct CodableTransaction {
 
     // signature data is read-only
     /// signature v component (read only)
-    public var v: BigUInt { return envelope.v }
+    public var v: BigUInt { envelope.v }
     /// signature r component (read only)
-    public var r: BigUInt { return envelope.r }
+    public var r: BigUInt { envelope.r }
     /// signature s component (read only)
-    public var s: BigUInt { return envelope.s }
+    public var s: BigUInt { envelope.s }
 
     /// the transaction hash
     public var hash: Data? {
-        guard let encoded: Data = self.envelope.encode(for: .transaction) else { return nil }
+        guard let encoded: Data = envelope.encode(for: .transaction) else { return nil }
         let hash = encoded.sha3(.keccak256)
         return hash
     }
@@ -118,7 +119,7 @@ public struct CodableTransaction {
 
     /// - Returns: a hash of the transaction suitable for signing
     public func hashForSignature() -> Data? {
-        guard let encoded = self.envelope.encode(for: .signature) else { return nil }
+        guard let encoded = envelope.encode(for: .signature) else { return nil }
         let hash = encoded.sha3(.keccak256)
         return hash
     }
@@ -144,35 +145,34 @@ public struct CodableTransaction {
     ///   - privateKey: the private key to use for signing
     ///   - useExtraEntropy: boolean whether to use extra entropy when signing (default false)
     public mutating func sign(privateKey: Data, useExtraEntropy: Bool = false) throws {
-        for _ in 0..<1024 {
-            let result = self.attemptSignature(privateKey: privateKey, useExtraEntropy: useExtraEntropy)
+        for _ in 0 ..< 1024 {
+            let result = attemptSignature(privateKey: privateKey, useExtraEntropy: useExtraEntropy)
             if result { return }
         }
         throw AbstractKeystoreError.invalidAccountError
     }
 
     // actual signing algorithm implementation
+
     private mutating func attemptSignature(privateKey: Data, useExtraEntropy: Bool = false) -> Bool {
-        guard let hash = self.hashForSignature() else { return false }
+        guard let hash = hashForSignature() else { return false }
         let signature = SECP256K1.signForRecovery(hash: hash, privateKey: privateKey, useExtraEntropy: useExtraEntropy)
         guard let serializedSignature = signature.serializedSignature else { return false }
         guard let unmarshalledSignature = SECP256K1.unmarshalSignature(signatureData: serializedSignature) else { return false }
         guard let originalPublicKey = SECP256K1.privateToPublic(privateKey: privateKey) else { return false }
-        self.envelope.setUnmarshalledSignatureData(unmarshalledSignature)
-        let recoveredPublicKey = self.recoverPublicKey()
+        envelope.setUnmarshalledSignatureData(unmarshalledSignature)
+        let recoveredPublicKey = recoverPublicKey()
         if !(originalPublicKey.constantTimeComparisonTo(recoveredPublicKey)) { return false }
         return true
     }
 
     /// clears the signature data
-    public mutating func unsign() {
-        self.envelope.clearSignatureData()
-    }
+    public mutating func unsign() { envelope.clearSignatureData() }
 
     /// Create a new CodableTransaction from a raw stream of bytes from the blockchain
     public init?(rawValue: Data) {
         guard let env = EnvelopeFactory.createEnvelope(rawValue: rawValue) else { return nil }
-        self.envelope = env
+        envelope = env
         // FIXME: This is duplication and should be fixed.
         data = Data()
         noncePolicy = .latest
@@ -183,22 +183,19 @@ public struct CodableTransaction {
     }
 
     /// - Returns: a raw bytestream of the transaction, encoded according to the transactionType
-    public func encode(for type: EncodeType = .transaction) -> Data? {
-        return self.envelope.encode(for: type)
-    }
+    public func encode(for type: EncodeType = .transaction) -> Data? { envelope.encode(for: type) }
 
-    public mutating func resolve(provider: Web3Provider) async {
-        // FIXME: Delete force try
-        self.gasLimit = try! await self.gasLimitPolicy.resolve(provider: provider, transaction: self)
+    public mutating func resolve(api: any Web3API) async throws {
+        gasLimit = try await gasLimitPolicy.resolve(api: api, transaction: self)
 
         if from != nil || sender != nil {
-            self.nonce = try! await self.resolveNonce(provider: provider)
+            nonce = try await resolveNonce(api: api)
         }
         if case .eip1559 = type {
-            self.maxFeePerGas = try! await self.maxFeePerGasPolicy.resolve(provider: provider)
-            self.maxPriorityFeePerGas = try! await self.maxPriorityFeePerGasPolicy.resolve(provider: provider)
+            maxFeePerGas = try await maxFeePerGasPolicy.resolve(api: api)
+            maxPriorityFeePerGas = try await maxPriorityFeePerGasPolicy.resolve(api: api)
         } else {
-            self.gasPrice = try! await self.gasPricePolicy.resolve(provider: provider)
+            gasPrice = try await gasPricePolicy.resolve(provider: api)
         }
     }
 
@@ -231,7 +228,7 @@ extension CodableTransaction: Codable {
     /// - Parameter decoder: the decoder stream for the input data
     public init(from decoder: Decoder) throws {
         guard let env = try EnvelopeFactory.createEnvelope(from: decoder) else { throw Web3Error.dataError }
-        self.envelope = env
+        envelope = env
         // FIXME: This is duplication and should be fixed.
         data = Data()
 
@@ -242,77 +239,76 @@ extension CodableTransaction: Codable {
         maxPriorityFeePerGasPolicy = .automatic
 
         // capture any metadata that might be present
-        self.meta = try TransactionMetadata(from: decoder)
+        meta = try TransactionMetadata(from: decoder)
     }
 
     public func encode(to encoder: Encoder) throws {
         // FIXME: There's a huge mess here, please take a look here at code review if any.
-        var containier = encoder.container(keyedBy: CodingKeys.self)
-        try containier.encode(nonce.hexString, forKey: .nonce)
-        try containier.encode(data.toHexString().addHexPrefix(), forKey: .data)
-        try containier.encode(value.hexString, forKey: .value)
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(nonce.hexString, forKey: .nonce)
+        try container.encode(data.toHexString().add0x, forKey: .data)
+        try container.encode(value.hexString, forKey: .value)
 
         // Encoding only fields with value.
         // TODO: Rewrite me somehow better.
         if type != .legacy {
-            try containier.encode(type.rawValue.hexString, forKey: .type)
+            try container.encode(type.rawValue.hexString, forKey: .type)
             if let chainID = chainID, !chainID.isZero {
-                try containier.encode(chainID.hexString, forKey: .chainID)
+                try container.encode(chainID.hexString, forKey: .chainID)
             }
         }
         if let accessList = accessList, !accessList.isEmpty {
-            try containier.encode(accessList, forKey: .accessList)
+            try container.encode(accessList, forKey: .accessList)
         }
 
         if !gasLimit.isZero {
-            try containier.encode(gasLimit.hexString, forKey: .gasLimit)
+            try container.encode(gasLimit.hexString, forKey: .gasLimit)
         }
 
         if let gasPrice = gasPrice, !gasPrice.isZero {
-            try containier.encode(gasPrice.hexString, forKey: .gasPrice)
+            try container.encode(gasPrice.hexString, forKey: .gasPrice)
         }
 
         if let maxFeePerGas = maxFeePerGas, !maxFeePerGas.isZero {
-            try containier.encode(maxFeePerGas.hexString, forKey: .maxFeePerGas)
+            try container.encode(maxFeePerGas.hexString, forKey: .maxFeePerGas)
         }
 
         if let maxPriorityFeePerGas = maxPriorityFeePerGas, !maxPriorityFeePerGas.isZero {
-            try containier.encode(maxPriorityFeePerGas.hexString, forKey: .maxPriorityFeePerGas)
+            try container.encode(maxPriorityFeePerGas.hexString, forKey: .maxPriorityFeePerGas)
         }
 
         // Don't encode empty address
         if !to.address.elementsEqual("0x") {
-            try containier.encode(to, forKey: .to)
+            try container.encode(to, forKey: .to)
         }
 
         if let from = from {
-            try containier.encode(from, forKey: .from)
+            try container.encode(from, forKey: .from)
         }
     }
-
 }
 
-public protocol Policyable {
-    func resolve(provider: Web3Provider, transaction: CodableTransaction?) async throws -> BigUInt
+public protocol PolicyResolvable {
+    func resolve(api: Web3API, transaction: CodableTransaction?) async throws -> BigUInt
 }
 
-extension CodableTransaction {
-    public enum GasLimitPolicy {
+public extension CodableTransaction {
+    enum GasLimitPolicy {
         case automatic
         case manual(BigUInt)
         case limited(BigUInt)
         case withMargin(Double)
 
-        func resolve(provider: Web3Provider, transaction: CodableTransaction?) async throws -> BigUInt {
+        func resolve(api: Web3API, transaction: CodableTransaction?) async throws -> BigUInt {
             guard let transaction = transaction else { throw Web3Error.valueError }
             let request: APIRequest = .estimateGas(transaction, transaction.callOnBlock ?? .latest)
-            let response: APIResponse<BigUInt> = try await APIRequest.sendRequest(with: provider, for: request)
+            let response: APIResponse<BigUInt> = try await APIRequest.send(apiRequest: request, with: api)
             switch self {
             case .automatic, .withMargin:
                 return response.result
-            case .manual(let value):
+            case let .manual(value):
                 return value
-            case .limited(let limit):
+            case let .limited(limit):
                 if limit <= response.result {
                     return response.result
                 } else {
@@ -322,64 +318,63 @@ extension CodableTransaction {
         }
     }
 
-    public enum GasPricePolicy {
+    enum GasPricePolicy {
         case automatic
         case manual(BigUInt)
         case withMargin(Double)
 
-        func resolve(provider: Web3Provider, transaction: CodableTransaction? = nil) async throws -> BigUInt {
+        func resolve(provider: Web3API, transaction _: CodableTransaction? = nil) async throws -> BigUInt {
             let oracle = Oracle(provider)
             switch self {
             case .automatic, .withMargin:
                 return await oracle.gasPriceLegacyPercentiles().max() ?? 0
-            case .manual(let value):
+            case let .manual(value):
                 return value
             }
         }
     }
 
-    public enum PriorityFeePerGasPolicy: Policyable {
+    enum PriorityFeePerGasPolicy: PolicyResolvable {
         case automatic
         case manual(BigUInt)
 
-        public func resolve(provider: Web3Provider, transaction: CodableTransaction? = nil) async throws -> BigUInt {
-            let oracle = Oracle(provider)
+        public func resolve(api: Web3API, transaction _: CodableTransaction? = nil) async throws -> BigUInt {
+            let oracle = Oracle(api)
             switch self {
             case .automatic:
                 return await oracle.tipFeePercentiles().max() ?? 0
-            case .manual(let value):
+            case let .manual(value):
                 return value
             }
         }
     }
 
-    public enum FeePerGasPolicy: Policyable {
+    enum FeePerGasPolicy: PolicyResolvable {
         case automatic
         case manual(BigUInt)
 
-        public func resolve(provider: Web3Provider, transaction: CodableTransaction? = nil) async throws -> BigUInt {
-            let oracle = Oracle(provider)
+        public func resolve(api: Web3API, transaction _: CodableTransaction? = nil) async throws -> BigUInt {
+            let oracle = Oracle(api)
             switch self {
             case .automatic:
                 return await oracle.baseFeePercentiles().max() ?? 0
-            case .manual(let value):
+            case let .manual(value):
                 return value
             }
         }
     }
 
-    func resolveNonce(provider: Web3Provider) async throws -> BigUInt {
+    internal func resolveNonce(api: Web3API) async throws -> BigUInt {
         switch noncePolicy {
         case .pending, .latest, .earliest:
             guard let address = from ?? sender else { throw Web3Error.valueError }
             let request: APIRequest = .getTransactionCount(address.address, callOnBlock ?? .latest)
-            let response: APIResponse<BigUInt> = try await APIRequest.sendRequest(with: provider, for: request)
+            let response: APIResponse<BigUInt> = try await APIRequest.send(apiRequest: request, with: api)
             return response.result
-        case .exact(let value):
+        case let .exact(value):
             return value
         }
     }
-
 }
 
 extension CodableTransaction: CustomStringConvertible {
@@ -388,14 +383,14 @@ extension CodableTransaction: CustomStringConvertible {
     public var description: String {
         var toReturn = ""
         toReturn += "Transaction" + "\n"
-        toReturn += String(describing: self.envelope)
-        toReturn += "from: " + String(describing: self.sender?.address)  + "\n"
-        toReturn += "hash: " + String(describing: self.hash?.toHexString().addHexPrefix()) + "\n"
+        toReturn += String(describing: envelope)
+        toReturn += "from: " + String(describing: sender?.address) + "\n"
+        toReturn += "hash: " + String(describing: hash?.toHexString().add0x) + "\n"
         return toReturn
     }
 }
 
-extension CodableTransaction {
+public extension CodableTransaction {
     // the kitchen sink init: can produce a transaction of any type
     /// Universal initializer to create a new CodableTransaction object
     /// - Parameters:
@@ -409,22 +404,34 @@ extension CodableTransaction {
     ///   - r: signature r parameter (default 0) - will get set properly once signed
     ///   - s: signature s parameter (default 0) - will get set properly once signed
     ///   - parameters: EthereumParameters object containing additional parametrs for the transaction like gas
-    public init(type: TransactionType? = nil, to: EthereumAddress, nonce: BigUInt = 0,
-                chainID: BigUInt = 0, value: BigUInt = 0, data: Data = Data(),
-                gasLimit: BigUInt = 0, maxFeePerGas: BigUInt? = nil, maxPriorityFeePerGas: BigUInt? = nil, gasPrice: BigUInt? = nil,
-                accessList: [AccessListEntry]? = nil, v: BigUInt = 1, r: BigUInt = 0, s: BigUInt = 0) {
+    init(
+        type: TransactionType? = nil,
+        to: EthereumAddress,
+        nonce: BigUInt = 0,
+        chainID: BigUInt = 0,
+        value: BigUInt = 0,
+        data: Data = Data(),
+        gasLimit: BigUInt = 0,
+        maxFeePerGas: BigUInt? = nil,
+        maxPriorityFeePerGas: BigUInt? = nil,
+        gasPrice: BigUInt? = nil,
+        accessList: [AccessListEntry]? = nil,
+        v: BigUInt = 1,
+        r: BigUInt = 0,
+        s: BigUInt = 0
+    ) {
         // FIXME: This is duplication and should be fixed.
         self.data = data
         self.accessList = accessList
-        self.gasLimitPolicy = .automatic
-        self.noncePolicy = .pending
-        self.gasPricePolicy = .automatic
-        self.maxFeePerGasPolicy = .automatic
-        self.maxPriorityFeePerGasPolicy = .automatic
-        self.callOnBlock = .latest
+        gasLimitPolicy = .automatic
+        noncePolicy = .pending
+        gasPricePolicy = .automatic
+        maxFeePerGasPolicy = .automatic
+        maxPriorityFeePerGasPolicy = .automatic
+        callOnBlock = .latest
 
-        self.envelope = EnvelopeFactory.createEnvelope(type: type, to: to, nonce: nonce, chainID: chainID, value: value, data: data, gasLimit: gasLimit, maxFeePerGas: maxFeePerGas, maxPriorityFeePerGas: maxPriorityFeePerGas, gasPrice: gasPrice, accessList: accessList, v: v, r: r, s: s)
+        envelope = EnvelopeFactory.createEnvelope(type: type, to: to, nonce: nonce, chainID: chainID, value: value, data: data, gasLimit: gasLimit, maxFeePerGas: maxFeePerGas, maxPriorityFeePerGas: maxPriorityFeePerGas, gasPrice: gasPrice, accessList: accessList, v: v, r: r, s: s)
     }
 }
 
-extension CodableTransaction: APIRequestParameterType { }
+extension CodableTransaction: APIRequestParameterType {}

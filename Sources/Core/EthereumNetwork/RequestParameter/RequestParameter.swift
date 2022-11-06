@@ -34,7 +34,7 @@ import Foundation
  //> [12,\"this\",12.2,[12.2,12.4]]`
  ```
  */
-enum RequestParameter {
+public indirect enum RequestParameter {
     case int(Int)
     case intArray([Int])
 
@@ -52,4 +52,36 @@ enum RequestParameter {
 
     case transaction(CodableTransaction)
     case eventFilter(EventFilterParameters)
+
+    case dictionary([String: RequestParameter])
+}
+
+
+public enum RequestParameters: Encodable {
+    case array([RequestParameter])
+    case dictionary([String: RequestParameter])
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .array(let params): try container.encode(params)
+        case .dictionary(let dictionary): try container.encode(dictionary)
+        }
+    }
+
+    var queryItems: [URLQueryItem]? {
+        switch self {
+        case .dictionary(let items):
+            return items.compactMap { (k, v) in
+                switch v {
+                case .int, .uint, .double, .string, .bool:
+                    return URLQueryItem(name: k, value: "\(v.rawValue)")
+                default:
+                    return nil
+                }
+            }
+        default:
+            return nil
+        }
+    }
 }

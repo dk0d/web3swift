@@ -98,6 +98,7 @@ extension UnkeyedDecodingContainer {
         return array
     }
 
+
     /// Decodes a unkeyed value from Hex to `DecodableFromHex`
     ///
     /// Currently this method supports only `Data.Type`, `BigUInt.Type`, `Date.Type`, `EthereumAddress`
@@ -131,20 +132,20 @@ extension Data: DecodableFromHex {
 
 extension UInt: DecodableFromHex {
     public init?(from hexString: String) {
-        self.init(hexString.stripHexPrefix(), radix: 16)
+        self.init(hexString.drop0x, radix: 16)
     }
 }
 
 extension BigUInt: DecodableFromHex {
     public init?(from hexString: String) {
-        self.init(hexString.stripHexPrefix(), radix: 16)
+        self.init(hexString.drop0x, radix: 16)
     }
 }
 
 extension Date: DecodableFromHex {
     public init?(from hexString: String) {
         self.init()
-        let stripedHexString = hexString.stripHexPrefix()
+        let stripedHexString = hexString.drop0x
         guard let timestampInt = UInt(stripedHexString, radix: 16) else { return nil }
         self = Date(timeIntervalSince1970: TimeInterval(timestampInt))
     }

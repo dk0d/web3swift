@@ -7,11 +7,12 @@ import Foundation
 import BigInt
 import Core
 
-extension Web3.Eth {
-    public func ownedAccounts() async throws -> [EthereumAddress] {
-        guard web3.provider.attachedKeystoreManager == nil else {
-            return try web3.wallet.getAccounts()
+
+extension Web3Provider {
+    public func ownedAccounts(wallet: Web3.Web3Wallet) async throws -> [EthereumAddress] {
+        guard manager == nil else {
+            return try wallet.getAccounts(provider: self)
         }
-        return try await APIRequest.sendRequest(with: web3.provider, for: .getAccounts).result
+        return try await APIRequest.send(apiRequest: .getAccounts, with: api).result
     }
 }

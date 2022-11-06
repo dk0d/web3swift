@@ -3,27 +3,26 @@
 //  Copyright © 2018 Alex Vlasov. All rights reserved.
 //
 
-import Foundation
 import CryptoSwift
+import Foundation
 
 public class EthereumKeystoreV3: AbstractKeystore {
     // Protocol
     public var isHDKeystore: Bool = false
     private var address: EthereumAddress?
     public var keystoreParams: KeystoreParamsV3?
+    public var path: String { "ethV3" }
 
     public var addresses: [EthereumAddress]? {
-        get {
-            if self.address != nil {
-                return [self.address!]
-            }
-            return nil
+        if address != nil {
+            return [address!]
         }
+        return nil
     }
 
     public func UNSAFE_getPrivateKeyData(password: String, account: EthereumAddress) throws -> Data {
-        if self.addresses?.count == 1 && account == self.addresses?.last {
-            guard let privateKey = try? self.getKeyData(password) else {
+        if addresses?.count == 1, account == addresses?.last {
+            guard let privateKey = try? getKeyData(password) else {
                 throw AbstractKeystoreError.invalidPasswordError
             }
             return privateKey
@@ -34,7 +33,7 @@ public class EthereumKeystoreV3: AbstractKeystore {
     // Class
 
     public func getAddress() -> EthereumAddress? {
-        return self.address
+        return address
     }
 
     // --------------
@@ -58,12 +57,12 @@ public class EthereumKeystoreV3: AbstractKeystore {
         if keystoreParams.version != 3 {
             return nil
         }
-        if keystoreParams.crypto.version != nil && keystoreParams.crypto.version != "1" {
+        if keystoreParams.crypto.version != nil, keystoreParams.crypto.version != "1" {
             return nil
         }
         self.keystoreParams = keystoreParams
         if keystoreParams.address != nil {
-            self.address = EthereumAddress(keystoreParams.address!.addHexPrefix())
+            address = EthereumAddress(keystoreParams.address!.add0x)
         } else {
             return nil
         }
@@ -100,8 +99,8 @@ public class EthereumKeystoreV3: AbstractKeystore {
         guard let derivedKey = scrypt(password: password, salt: saltData, length: dkLen, N: N, R: R, P: P) else {
             throw AbstractKeystoreError.keyDerivationError
         }
-        let last16bytes = Data(derivedKey[(derivedKey.count - 16)...(derivedKey.count - 1)])
-        let encryptionKey = Data(derivedKey[0...15])
+        let last16bytes = Data(derivedKey[(derivedKey.count - 16) ... (derivedKey.count - 1)])
+        let encryptionKey = Data(derivedKey[0 ... 15])
         guard let IV = Data.randomBytes(length: 16) else {
             throw AbstractKeystoreError.noEntropyError
         }
@@ -134,24 +133,24 @@ public class EthereumKeystoreV3: AbstractKeystore {
         guard let addr = Utilities.publicToAddress(pubKey) else {
             throw AbstractKeystoreError.keyDerivationError
         }
-        self.address = addr
+        address = addr
         let keystoreparams = KeystoreParamsV3(address: addr.address.lowercased(), crypto: crypto, id: UUID().uuidString.lowercased(), version: 3)
-        self.keystoreParams = keystoreparams
+        keystoreParams = keystoreparams
     }
 
-    public func regenerate(oldPassword: String, newPassword: String, dkLen: Int = 32, N: Int = 4096, R: Int = 6, P: Int = 1) throws {
-        var keyData = try self.getKeyData(oldPassword)
+    public func regenerate(oldPassword: String, newPassword: String, dkLen _: Int = 32, N _: Int = 4096, R _: Int = 6, P _: Int = 1) throws {
+        var keyData = try getKeyData(oldPassword)
         if keyData == nil {
             throw AbstractKeystoreError.encryptionError("Failed to decrypt a keystore")
         }
         defer {
             Data.zero(&keyData!)
         }
-        try self.encryptDataToStorage(newPassword, keyData: keyData!, aesMode: self.keystoreParams!.crypto.cipher)
+        try encryptDataToStorage(newPassword, keyData: keyData!, aesMode: keystoreParams!.crypto.cipher)
     }
 
     fileprivate func getKeyData(_ password: String) throws -> Data? {
-        guard let keystoreParams = self.keystoreParams else {
+        guard let keystoreParams = keystoreParams else {
             return nil
         }
         guard let saltData = Data.fromHex(keystoreParams.crypto.kdfparams.salt) else {
@@ -206,7 +205,7 @@ public class EthereumKeystoreV3: AbstractKeystore {
             return nil
         }
         var dataForMAC = Data()
-        let derivedKeyLast16bytes = Data(derivedKey[(derivedKey.count - 16)...(derivedKey.count - 1)])
+        let derivedKeyLast16bytes = Data(derivedKey[(derivedKey.count - 16) ... (derivedKey.count - 1)])
         dataForMAC.append(derivedKeyLast16bytes)
         guard let cipherText = Data.fromHex(keystoreParams.crypto.ciphertext) else {
             return nil
@@ -220,7 +219,7 @@ public class EthereumKeystoreV3: AbstractKeystore {
             return nil
         }
         let cipher = keystoreParams.crypto.cipher
-        let decryptionKey = derivedKey[0...15]
+        let decryptionKey = derivedKey[0 ... 15]
         guard let IV = Data.fromHex(keystoreParams.crypto.cipherparams.iv) else {
             return nil
         }
@@ -246,7 +245,7 @@ public class EthereumKeystoreV3: AbstractKeystore {
     }
 
     public func serialize() throws -> Data? {
-        guard let params = self.keystoreParams else {
+        guard let params = keystoreParams else {
             return nil
         }
         let data = try JSONEncoder().encode(params)

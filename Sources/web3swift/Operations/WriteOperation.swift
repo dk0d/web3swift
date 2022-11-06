@@ -3,42 +3,47 @@
 //  Copyright © 2018 Alex Vlasov. All rights reserved.
 //
 
-import Foundation
 import BigInt
 import Core
+import Foundation
 
 /// Wrapper for `EthererumTransaction.data` property appropriate encoding.
 public class WriteOperation: ReadOperation {
-
     // FIXME: Rewrite this to CodableTransaction
-    public func writeToChain(password: String) async throws -> TransactionSendingResult {
-        await transaction.resolve(provider: web3.provider)
-        if let attachedKeystoreManager = self.web3.provider.attachedKeystoreManager {
+    public func writeToChain<API: Web3API>(provider: Web3Provider<API>, password: String) async throws -> TransactionSendingResult {
+        try await transaction.resolve(api: provider.api)
+        if let attachedKeystoreManager = provider.manager {
             do {
                 try Web3Signer.signTX(transaction: &transaction,
-                                      keystore: attachedKeystoreManager,
-                                      account: transaction.from ?? transaction.sender ?? EthereumAddress.contractDeploymentAddress(),
-                                      password: password)
+                    keystore: attachedKeystoreManager,
+                    account: transaction.from ?? transaction.sender ?? EthereumAddress.contractDeploymentAddress(),
+                    password: password)
             } catch {
                 throw Web3Error.inputError(desc: "Failed to locally sign a transaction")
             }
             guard let transactionData = transaction.encode(for: .transaction) else { throw Web3Error.dataError }
-            return try await web3.eth.send(raw: transactionData)
+            return try await provider.send(raw: transactionData)
         }
+
         // MARK: Sending Data flow
-        return try await web3.eth.send(transaction)
+        return try await provider.send(transaction)
     }
 
     // FIXME: Rewrite this to CodableTransaction
-    func nonce(for policy: CodableTransaction.NoncePolicy, from: EthereumAddress) async throws -> BigUInt {
+
+    func nonce<API: Web3API>(
+        provider: Web3Provider<API>,
+        for policy: CodableTransaction.NoncePolicy,
+        from: EthereumAddress
+    ) async throws -> BigUInt {
         switch policy {
         case .latest:
-            return try await self.web3.eth.getTransactionCount(for: from, onBlock: .latest)
+            return try await provider.getTransactionCount(for: from, onBlock: .latest)
         case .pending:
-            return try await self.web3.eth.getTransactionCount(for: from, onBlock: .pending)
+            return try await provider.getTransactionCount(for: from, onBlock: .pending)
         case .earliest:
-            return try await self.web3.eth.getTransactionCount(for: from, onBlock: .earliest)
-        case .exact(let nonce):
+            return try await provider.getTransactionCount(for: from, onBlock: .earliest)
+        case let .exact(nonce):
             return nonce
         }
     }

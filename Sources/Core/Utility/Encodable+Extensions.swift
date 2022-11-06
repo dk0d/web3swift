@@ -5,8 +5,8 @@
 //  Created by ShopBack on 1/19/19.
 //  Copyright © 2019 levantAJ. All rights reserved.
 //
-import Foundation
 import BigInt
+import Foundation
 
 extension KeyedEncodingContainer {
     mutating func encodeHex<T: EncodableToHex>(_ value: T, forKey key: KeyedEncodingContainer<K>.Key) throws {
@@ -60,6 +60,6 @@ public extension EncodableToHex where Self: BinaryInteger {
     var hexString: String { "0x" + String(self, radix: 16) }
 }
 
-extension BigUInt: EncodableToHex { }
+extension BigUInt: EncodableToHex {}
 
-extension UInt: EncodableToHex { }
+extension UInt: EncodableToHex {}

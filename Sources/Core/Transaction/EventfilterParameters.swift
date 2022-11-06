@@ -6,11 +6,11 @@
 //
 //  Made most structs generics by Yaroslav Yashin 2022
 
-import Foundation
 import BigInt
+import Foundation
 
 /// Global counter object to enumerate JSON RPC requests.
-public struct Counter {
+public enum Counter {
     public static var counter: UInt = 1
     public static var lockQueue = DispatchQueue(label: "counterQueue")
     public static func increment() -> UInt {
@@ -55,7 +55,7 @@ extension EventFilterParameters {
     }
 }
 
-extension EventFilterParameters {
+public extension EventFilterParameters {
     /**
      This enum covers the optional nested Arrays
 
@@ -94,7 +94,7 @@ extension EventFilterParameters {
      ]
      ```
      */
-    public enum Topic: Encodable {
+    enum Topic: Encodable {
         case string(String?)
         case strings([Topic?]?)
 
@@ -110,7 +110,7 @@ extension EventFilterParameters {
     }
 }
 
-extension EventFilterParameters: APIRequestParameterType { }
+extension EventFilterParameters: APIRequestParameterType {}
 
 // - Why don't you develope some JSON composer to just send a server request, Yaroslav?
 // - Indeed, see no reason, why should i pass this.
@@ -118,7 +118,7 @@ extension EventFilterParameters: APIRequestParameterType { }
 extension Array where Element == EventFilterParameters.Topic? {
     var textRepresentation: String {
         var string = "["
-        for (number, element) in self.enumerated() {
+        for (number, element) in enumerated() {
             if number > 0 {
                 string += ","
             }

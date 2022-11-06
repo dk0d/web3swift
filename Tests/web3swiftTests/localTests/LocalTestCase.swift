@@ -10,7 +10,6 @@ import web3swift
 class LocalTestCase: XCTestCase {
 
     static let url = URL(string: "http://127.0.0.1:8545")!
-    static let keyStoreManager: KeystoreManager = KeystoreManager([try! EthereumKeystoreV3(password: "web3swift")!])
 
     override func setUp() async throws {
         let web3 = try! await Web3.new(LocalTestCase.url)
@@ -33,7 +32,7 @@ class LocalTestCase: XCTestCase {
         writeTX.transaction.gasPricePolicy = .manual(20000000000)
 
         for _ in block..<25 {
-            _ = try! await writeTX.writeToChain(password: "")
+            let _ = try! await writeTX.writeToChain(password: "")
         }
     }
 }

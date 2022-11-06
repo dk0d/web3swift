@@ -4,8 +4,8 @@
 //  Created by Yaroslav on 24.05.2022.
 //
 
-import Foundation
 import BigInt
+import Foundation
 
 public typealias Hash = String // 32 bytes hash of block (64 chars length without 0x)
 public typealias Receipt = Hash
@@ -78,6 +78,7 @@ public typealias TransactionHash = Hash // 64 chars length without 0x
 ///  - tx Namespace - https://geth.ethereum.org/docs/rpc/ns-txpool
 public enum APIRequest {
     // MARK: - Official Ethereum API
+
     // eth Namespace - https://ethereum.org/en/developers/docs/apis/json-rpc/#json-rpc-methods
 
     /// Gas price request
@@ -194,6 +195,7 @@ public enum APIRequest {
     case feeHistory(BigUInt, BlockNumber, [Double])
 
     // MARK: - Personal Ethereum API
+
     // personal Namespace - https://geth.ethereum.org/docs/rpc/ns-personal
 
     /// Creates new account.
@@ -220,7 +222,14 @@ public enum APIRequest {
     case unlockAccount(Address, String, UInt?)
 
     // MARK: - Tx Ethereum API
+
     // tx Namespace - https://geth.ethereum.org/docs/rpc/ns-txpool
     case getTxPoolStatus // No in Eth API
     case getTxPoolContent // No in Eth API
+
+    case custom(path: String?, rest: REST)
+
+    public func send<Result: APIResultType>(api: Web3API) async throws -> APIResponse<Result> {
+        try await APIRequest.send(apiRequest: self, with: api)
+    }
 }

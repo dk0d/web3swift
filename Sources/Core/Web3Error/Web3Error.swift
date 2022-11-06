@@ -1,6 +1,6 @@
 //
 //  Web3Error.swift
-//  
+//
 //
 //  Created by Yaroslav Yashin on 11.07.2022.
 //
@@ -27,7 +27,6 @@ public enum Web3Error: Error {
 
     public var errorDescription: String {
         switch self {
-
         case .transactionSerializationError:
             return "Transaction Serialization Error"
         case .connectionError:
@@ -36,15 +35,15 @@ public enum Web3Error: Error {
             return "Data Error"
         case .walletError:
             return "Wallet Error"
-        case .inputError(let desc):
+        case let .inputError(desc):
             return desc
-        case .nodeError(let desc):
+        case let .nodeError(desc):
             return desc
-        case .processingError(let desc):
+        case let .processingError(desc):
             return desc
-        case .keystoreError(let err):
+        case let .keystoreError(err):
             return err.localizedDescription
-        case .generalError(let err):
+        case let .generalError(err):
             return err.localizedDescription
         case .unknownError:
             return "Unknown Error"

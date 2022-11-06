@@ -7,9 +7,9 @@ import Foundation
 import BigInt
 import Core
 
-extension Web3.Eth {
+
+extension Web3Provider {
     public func estimateGas(for transaction: CodableTransaction, onBlock: BlockNumber = .latest) async throws -> BigUInt {
-        let request = APIRequest.estimateGas(transaction, onBlock)
-        return try await APIRequest.sendRequest(with: provider, for: request).result
+        try await APIRequest.send(apiRequest: .estimateGas(transaction, onBlock), with: api).result
     }
 }

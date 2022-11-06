@@ -3,13 +3,12 @@
 //  Copyright © 2018 Alexander Vlasov. All rights reserved.
 //
 
-import Foundation
 import BigInt
+import Foundation
 
 /// Default representation of a smart contract. Created out of an array of ``ABI/Element`` which could be functions, events,
 /// constructor, errors and optional ``EthereumAddress`` that could be set later.
 public class EthereumContract: DefaultContractProtocol {
-
     public var address: EthereumAddress?
 
     public let abi: [ABI.Element]
@@ -37,12 +36,12 @@ public class EthereumContract: DefaultContractProtocol {
         allErrors = Array(errors.values)
     }
 
-    public convenience required init(_ abiString: String, at: EthereumAddress? = nil) throws {
+    public required convenience init(_ abiString: String, at: EthereumAddress? = nil) throws {
         let jsonData = abiString.data(using: .utf8)
         let abi = try JSONDecoder().decode([ABI.Record].self, from: jsonData!)
-        let abiNative = try abi.map({ record -> ABI.Element in
-            return try record.parse()
-        })
+        let abiNative = try abi.map { record -> ABI.Element in
+            try record.parse()
+        }
         try self.init(abi: abiNative, at: at)
     }
 }

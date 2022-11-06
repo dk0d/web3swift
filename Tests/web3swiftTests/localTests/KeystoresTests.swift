@@ -202,8 +202,9 @@ class KeystoresTests: LocalTestCase {
 //        let pbkdf2 = try? PKCS5.PBKDF2(password: pass.bytes, salt: salt.bytes, iterations: 10_000, keyLength: 65, variant: HMAC.Variant.sha2(.sha512))
 //        /// takes to loong to run test with `100_000` iterations drops to `10_000`
 //        let dataArray = try? pbkdf2?.calculate()
-//        XCTAssert(Data(dataArray!).toHexString().addHexPrefix().lowercased() == "0x594256B0BD4D6C9F21A87F7BA5772A791A10E6110694F44365CD94670E57F1AECD797EF1D1001938719044C7F018026697845EB9AD97D97DE36AB8786AAB5096E7".lowercased())
+//        XCTAssert(Data(dataArray!).toHexString().add0x.lowercased() == "0x594256B0BD4D6C9F21A87F7BA5772A791A10E6110694F44365CD94670E57F1AECD797EF1D1001938719044C7F018026697845EB9AD97D97DE36AB8786AAB5096E7".lowercased())
 //    }
+
 
     func testRIPEMD() throws {
         let data = "message digest".data(using: .ascii)
@@ -271,13 +272,13 @@ class KeystoresTests: LocalTestCase {
         measure {
             let ks = try! EthereumKeystoreV3(privateKey: privateKey, password: "TEST")!
             let account = ks.addresses!.first!
-            _ = try! ks.UNSAFE_getPrivateKeyData(password: "TEST", account: account)
+            let _ = try! ks.UNSAFE_getPrivateKeyData(password: "TEST", account: account)
         }
     }
 
     func testSingleScryptDerivation() throws {
         let privateKey = Data.randomBytes(length: 32)!
-        _ = try! EthereumKeystoreV3(privateKey: privateKey, password: "TEST")!
+        let _ = try! EthereumKeystoreV3(privateKey: privateKey, password: "TEST")!
     }
 
 }

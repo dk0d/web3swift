@@ -9,6 +9,7 @@ import Foundation
 import BigInt
 
 public struct TransactionDetails: Decodable {
+    
     public var blockHash: Data?
     public var blockNumber: BigUInt?
     public var transactionIndex: BigUInt?

@@ -3,9 +3,9 @@
 //  Copyright © 2018 Alex Vlasov. All rights reserved.
 //
 
-import Foundation
 import BigInt
 import Core
+import Foundation
 
 // FIXME: Rewrite this to CodableTransaction
 
@@ -16,33 +16,34 @@ public class ReadOperation {
     public var method: String
     public var data: Data? { transaction.data }
 
-    var web3: Web3
-
     // FIXME: Rewrite this to CodableTransaction
-    public init(transaction: CodableTransaction = CodableTransaction.emptyTransaction,
-                web3 web3Instance: Web3,
-                contract: EthereumContract,
-                method: String = "fallback") {
+
+    public init(
+        transaction: CodableTransaction = CodableTransaction.emptyTransaction,
+        contract: EthereumContract,
+        method: String = "fallback",
+        chain: Chain? = nil
+    ) {
         self.transaction = transaction
-        self.web3 = web3Instance
         self.contract = contract
         self.method = method
-        if let network = self.web3.provider.network {
-            self.transaction.chainID = network.chainID
+        if let chain {
+            self.transaction.chainID = chain.chainID
         }
     }
 
-    // TODO: Remove type erasing here, some broad wide protocol should be added instead
-    public func callContractMethod() async throws -> [String: Any] {
-        await transaction.resolve(provider: web3.provider)
+    public func callContractMethod<API: Web3API>(provider: Web3Provider<API>) async throws -> [String: Any] {
+        try await transaction.resolve(api: provider.api)
+
         // MARK: Read data from ABI flow
+
         // FIXME: This should be dropped, and after `execute()` call, just to decode raw data.
-        let data: Data = try await self.web3.eth.callTransaction(transaction)
-        if self.method == "fallback" {
-            let resultHex = data.toHexString().addHexPrefix()
+        let data: Data = try await provider.callTransaction(transaction)
+        if method == "fallback" {
+            let resultHex = data.toHexString().add0x
             return ["result": resultHex as Any]
         }
-        guard let decodedData = self.contract.decodeReturnData(self.method, data: data) else {
+        guard let decodedData = contract.decodeReturnData(method, data: data) else {
             throw Web3Error.processingError(desc: "Can not decode returned parameters")
         }
         return decodedData

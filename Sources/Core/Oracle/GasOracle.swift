@@ -5,14 +5,14 @@
 //  Copyright © 2022 web3swift. All rights reserved.
 //
 
-import Foundation
 import BigInt
+import Foundation
 
 /// Oracle is the class to do a transaction fee suggestion
-final public class Oracle {
+public final class Oracle {
 
     /// Web3 provider by which accessing to the blockchain
-    private let web3Provider: Web3Provider
+    private let web3api: Web3API
 
     private var feeHistory: FeeHistory?
 
@@ -44,8 +44,8 @@ final public class Oracle {
     ///   - block: Number of block from which counts starts backward
     ///   - blockCount: Count of block to calculate statistics
     ///   - percentiles: Percentiles of fees to which result of predictions will be split in
-    public init(_ provider: Web3Provider, block: BlockNumber = .latest, blockCount: BigUInt = 20, percentiles: [Double] = [25, 50, 75], cacheTimeout: Double = 10) {
-        self.web3Provider = provider
+    public init(_ provider: Web3API, block: BlockNumber = .latest, blockCount: BigUInt = 20, percentiles: [Double] = [25, 50, 75], cacheTimeout: Double = 10) {
+        web3api = provider
         self.block = block
         self.blockCount = blockCount
         self.percentiles = percentiles
@@ -120,12 +120,12 @@ final public class Oracle {
     }
 
     private func suggestBaseFee() async throws -> [BigUInt] {
-        self.feeHistory = try await suggestGasValues()
+        feeHistory = try await suggestGasValues()
         return calculatePercentiles(for: feeHistory!.baseFeePerGas)
     }
 
-    private func combineRequest<Result>(request: APIRequest) async throws-> Result where Result: APIResultType {
-        let response: APIResponse<Result> = try await APIRequest.sendRequest(with: self.web3Provider, for: request)
+    private func combineRequest<Result>(request: APIRequest) async throws -> Result where Result: APIResultType {
+        let response: APIResponse<Result> = try await APIRequest.send(apiRequest: request, with: web3api)
         return response.result
     }
 
@@ -136,7 +136,7 @@ final public class Oracle {
             let block: BigUInt = try await combineRequest(request: .blockNumber)
             latestBlockNumber = block
         case let .exact(number): latestBlockNumber = number
-            // Error throws since pending and erliest are unable to be used in this method.
+        // Error throws since pending and erliest are unable to be used in this method.
         default: throw Web3Error.valueError
         }
 
@@ -170,7 +170,7 @@ final public class Oracle {
                 return transaction
             }
         }
-            .compactMap { $0.meta?.gasPrice ?? 0 }
+        .compactMap { $0.meta?.gasPrice ?? 0 }
 
         return calculatePercentiles(for: lastNthBlockGasPrice)
     }
@@ -178,6 +178,7 @@ final public class Oracle {
 
 public extension Oracle {
     // MARK: - Base Fee
+
     /// Soften baseFee amount
     ///
     /// - Returns: `[percentile_1, percentile_2, percentile_3, ...].count == self.percentile.count`
@@ -188,6 +189,7 @@ public extension Oracle {
     }
 
     // MARK: - Tip
+
     /// Tip amount
     ///
     /// - Returns: `[percentile_1, percentile_2, percentile_3, ...].count == self.percentile.count`
@@ -198,6 +200,7 @@ public extension Oracle {
     }
 
     // MARK: - Summary fees
+
     /// Summary fees amount
     ///
     /// - Returns: `[percentile_1, percentile_2, percentile_3, ...].count == self.percentile.count`
@@ -215,6 +218,7 @@ public extension Oracle {
     }
 
     // MARK: - Legacy GasPrice
+
     /// Legacy gasPrice amount
     ///
     /// - Returns: `[percentile_1, percentile_2, percentile_3, ...].count == self.percentile.count`
@@ -225,8 +229,8 @@ public extension Oracle {
     }
 }
 
-extension Oracle {
-    public struct FeeHistory {
+public extension Oracle {
+    struct FeeHistory {
         let timestamp = Date()
         let baseFeePerGas: [BigUInt]
         let gasUsedRatio: [Double]
@@ -246,11 +250,11 @@ extension Oracle.FeeHistory: Decodable {
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
 
-        self.baseFeePerGas = try values.decodeHex([BigUInt].self, forKey: .baseFeePerGas)
-        self.gasUsedRatio = try values.decode([Double].self, forKey: .gasUsedRatio)
-        self.oldestBlock = try values.decodeHex(BigUInt.self, forKey: .oldestBlock)
-        self.reward = try values.decodeHex([[BigUInt]].self, forKey: .reward)
+        baseFeePerGas = try values.decodeHex([BigUInt].self, forKey: .baseFeePerGas)
+        gasUsedRatio = try values.decode([Double].self, forKey: .gasUsedRatio)
+        oldestBlock = try values.decodeHex(BigUInt.self, forKey: .oldestBlock)
+        reward = try values.decodeHex([[BigUInt]].self, forKey: .reward)
     }
 }
 
-extension Oracle.FeeHistory: APIResultType { }
+extension Oracle.FeeHistory: APIResultType {}

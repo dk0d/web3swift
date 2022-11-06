@@ -6,10 +6,7 @@
 //
 
 import Foundation
+import Core
 
-// Standard Interface Detection
-protocol IERC165 {
+public protocol IERC165: ContractInterface {}
 
-    func supportsInterface(interfaceID: String) async throws -> Bool
-
-}

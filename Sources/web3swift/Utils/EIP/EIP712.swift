@@ -1,7 +1,7 @@
-import CryptoSwift
-import Foundation
 import BigInt
 import Core
+import CryptoSwift
+import Foundation
 
 /// Protocol defines EIP712 struct encoding
 public protocol EIP712Hashable {
@@ -9,7 +9,7 @@ public protocol EIP712Hashable {
     func hash() throws -> Data
 }
 
-public class EIP712 {
+public enum EIP712 {
     public typealias Address = EthereumAddress
     public typealias UInt256 = BigUInt
     public typealias UInt8 = Swift.UInt8
@@ -32,6 +32,7 @@ public extension EIP712.Address {
 }
 
 // MARK: - Default implementation for EIP712Hashable
+
 public extension EIP712Hashable {
     var typehash: Data {
         Data(encodeType().bytes).sha3(.keccak256)
@@ -86,7 +87,7 @@ public extension EIP712Hashable {
     }
 }
 
-fileprivate extension EIP712Hashable {
+private extension EIP712Hashable {
     var name: String {
         let fullName = "\(Self.self)"
         let name = fullName.components(separatedBy: ".").last ?? fullName
@@ -172,7 +173,8 @@ public struct GnosisSafeTx: EIP712Hashable {
                 gasPrice: EIP712.UInt256,
                 gasToken: EIP712.Address,
                 refundReceiver: EIP712.Address,
-                nonce: EIP712.UInt256) {
+                nonce: EIP712.UInt256)
+    {
         self.to = to
         self.value = value
         self.data = data
@@ -184,5 +186,4 @@ public struct GnosisSafeTx: EIP712Hashable {
         self.refundReceiver = refundReceiver
         self.nonce = nonce
     }
-
 }

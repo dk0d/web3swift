@@ -6,7 +6,6 @@
 import Foundation
 
 extension ABI {
-
     public enum ParsingError: Swift.Error {
         case invalidJsonFile
         case elementTypeInvalid
@@ -32,11 +31,10 @@ extension ABI {
         case receive
         case error
     }
-
 }
 
-extension ABI.Record {
-    public func parse() throws -> ABI.Element {
+public extension ABI.Record {
+    func parse() throws -> ABI.Element {
         let typeString = self.type ?? "function"
         guard let type = ABI.ElementType(rawValue: typeString) else {
             throw ABI.ParsingError.elementTypeInvalid
@@ -66,19 +64,18 @@ private func parseToElement(from abiRecord: ABI.Record, type: ABI.ElementType) t
         let error = try parseError(abiRecord: abiRecord)
         return ABI.Element.error(error)
     }
-
 }
 
 private func parseFunction(abiRecord: ABI.Record) throws -> ABI.Element.Function {
-    let inputs = try abiRecord.inputs?.map({ (input: ABI.Input) throws -> ABI.Element.InOut in
+    let inputs = try abiRecord.inputs?.map { (input: ABI.Input) throws -> ABI.Element.InOut in
         let nativeInput = try input.parse()
         return nativeInput
-    })
+    }
     let abiInputs = inputs ?? [ABI.Element.InOut]()
-    let outputs = try abiRecord.outputs?.map({ (output: ABI.Output) throws -> ABI.Element.InOut in
+    let outputs = try abiRecord.outputs?.map { (output: ABI.Output) throws -> ABI.Element.InOut in
         let nativeOutput = try output.parse()
         return nativeOutput
-    })
+    }
     let abiOutputs = outputs ?? [ABI.Element.InOut]()
     let name = abiRecord.name ?? ""
     let payable = abiRecord.stateMutability == "payable" || abiRecord.payable == true
@@ -95,10 +92,10 @@ private func parseFallback(abiRecord: ABI.Record) throws -> ABI.Element.Fallback
 }
 
 private func parseConstructor(abiRecord: ABI.Record) throws -> ABI.Element.Constructor {
-    let inputs = try abiRecord.inputs?.map({ (input: ABI.Input) throws -> ABI.Element.InOut in
+    let inputs = try abiRecord.inputs?.map { (input: ABI.Input) throws -> ABI.Element.InOut in
         let nativeInput = try input.parse()
         return nativeInput
-    })
+    }
     let abiInputs = inputs ?? [ABI.Element.InOut]()
     let payable = abiRecord.stateMutability == "payable" || abiRecord.payable == true
     let functionElement = ABI.Element.Constructor(inputs: abiInputs, constant: false, payable: payable)
@@ -106,10 +103,10 @@ private func parseConstructor(abiRecord: ABI.Record) throws -> ABI.Element.Const
 }
 
 private func parseEvent(abiRecord: ABI.Record) throws -> ABI.Element.Event {
-    let inputs = try abiRecord.inputs?.map({ (input: ABI.Input) throws -> ABI.Element.Event.Input in
+    let inputs = try abiRecord.inputs?.map { (input: ABI.Input) throws -> ABI.Element.Event.Input in
         let nativeInput = try input.parseForEvent()
         return nativeInput
-    })
+    }
     let abiInputs = inputs ?? [ABI.Element.Event.Input]()
     let name = abiRecord.name ?? ""
     let anonymous = abiRecord.anonymous ?? false
@@ -118,10 +115,10 @@ private func parseEvent(abiRecord: ABI.Record) throws -> ABI.Element.Event {
 }
 
 private func parseReceive(abiRecord: ABI.Record) throws -> ABI.Element.Receive {
-    let inputs = try abiRecord.inputs?.map({ (input: ABI.Input) throws -> ABI.Element.InOut in
+    let inputs = try abiRecord.inputs?.map { (input: ABI.Input) throws -> ABI.Element.InOut in
         let nativeInput = try input.parse()
         return nativeInput
-    })
+    }
     let abiInputs = inputs ?? [ABI.Element.InOut]()
     let payable = abiRecord.stateMutability == "payable" || abiRecord.payable == true
     let functionElement = ABI.Element.Receive(inputs: abiInputs, payable: payable)
@@ -129,10 +126,10 @@ private func parseReceive(abiRecord: ABI.Record) throws -> ABI.Element.Receive {
 }
 
 private func parseError(abiRecord: ABI.Record) throws -> ABI.Element.EthError {
-    let inputs = try abiRecord.inputs?.map({ (input: ABI.Input) throws -> ABI.Element.EthError.Input in
+    let inputs = try abiRecord.inputs?.map { (input: ABI.Input) throws -> ABI.Element.EthError.Input in
         let nativeInput = try input.parseForError()
         return nativeInput
-    })
+    }
     let abiInputs = inputs ?? []
     let name = abiRecord.name ?? ""
     return ABI.Element.EthError(name: name, inputs: abiInputs)
@@ -141,20 +138,20 @@ private func parseError(abiRecord: ABI.Record) throws -> ABI.Element.EthError {
 extension ABI.Input {
     func parse() throws -> ABI.Element.InOut {
         let name = self.name ?? ""
-        let parameterType = try ABITypeParser.parseTypeString(self.type)
+        let parameterType = try ABITypeParser.parseTypeString(type)
         if case .tuple(types: _) = parameterType {
-            let components = try self.components?.compactMap({ (inp: ABI.Input) throws -> ABI.Element.ParameterType in
+            let components = try self.components?.compactMap { (inp: ABI.Input) throws -> ABI.Element.ParameterType in
                 let input = try inp.parse()
                 return input.type
-            })
+            }
             let type = ABI.Element.ParameterType.tuple(types: components!)
             let nativeInput = ABI.Element.InOut(name: name, type: type)
             return nativeInput
         } else if case .array(type: .tuple(types: _), length: _) = parameterType {
-            let components = try self.components?.compactMap({ (inp: ABI.Input) throws -> ABI.Element.ParameterType in
+            let components = try self.components?.compactMap { (inp: ABI.Input) throws -> ABI.Element.ParameterType in
                 let input = try inp.parse()
                 return input.type
-            })
+            }
             let tupleType = ABI.Element.ParameterType.tuple(types: components!)
 
             let newType: ABI.Element.ParameterType = .array(type: tupleType, length: 0)
@@ -168,14 +165,14 @@ extension ABI.Input {
 
     func parseForEvent() throws -> ABI.Element.Event.Input {
         let name = self.name ?? ""
-        let parameterType = try ABITypeParser.parseTypeString(self.type)
+        let parameterType = try ABITypeParser.parseTypeString(type)
         let indexed = self.indexed == true
         return ABI.Element.Event.Input(name: name, type: parameterType, indexed: indexed)
     }
 
     func parseForError() throws -> ABI.Element.EthError.Input {
         let name = self.name ?? ""
-        let parameterType = try ABITypeParser.parseTypeString(self.type)
+        let parameterType = try ABITypeParser.parseTypeString(type)
         return ABI.Element.EthError.Input(name: name, type: parameterType)
     }
 }
@@ -183,23 +180,23 @@ extension ABI.Input {
 extension ABI.Output {
     func parse() throws -> ABI.Element.InOut {
         let name = self.name != nil ? self.name! : ""
-        let parameterType = try ABITypeParser.parseTypeString(self.type)
+        let parameterType = try ABITypeParser.parseTypeString(type)
         switch parameterType {
         case .tuple(types: _):
-            let components = try self.components?.compactMap({ (inp: ABI.Output) throws -> ABI.Element.ParameterType in
+            let components = try self.components?.compactMap { (inp: ABI.Output) throws -> ABI.Element.ParameterType in
                 let input = try inp.parse()
                 return input.type
-            })
+            }
             let type = ABI.Element.ParameterType.tuple(types: components!)
             let nativeInput = ABI.Element.InOut(name: name, type: type)
             return nativeInput
-        case .array(type: let subtype, length: let length):
+        case let .array(type: subtype, length: length):
             switch subtype {
             case .tuple(types: _):
-                let components = try self.components?.compactMap({ (inp: ABI.Output) throws -> ABI.Element.ParameterType in
+                let components = try self.components?.compactMap { (inp: ABI.Output) throws -> ABI.Element.ParameterType in
                     let input = try inp.parse()
                     return input.type
-                })
+                }
                 let nestedSubtype = ABI.Element.ParameterType.tuple(types: components!)
                 let properType = ABI.Element.ParameterType.array(type: nestedSubtype, length: length)
                 let nativeInput = ABI.Element.InOut(name: name, type: properType)

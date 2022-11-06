@@ -33,7 +33,6 @@ public protocol AbstractKeystoreParams: Codable {
     var id: String? { get }
     var version: Int { get }
     var isHDWallet: Bool { get }
-
 }
 
 public struct PathAddressPair: Codable {
@@ -50,13 +49,13 @@ public struct KeystoreParamsBIP32: AbstractKeystoreParams {
     @available(*, deprecated, message: "Please use pathAddressPairs instead")
     var pathToAddress: [String: String] {
         get {
-            return self.pathAddressPairs.reduce(into: [String: String]()) {
+            return pathAddressPairs.reduce(into: [String: String]()) {
                 $0[$1.path] = $1.address
             }
         }
         set {
             for pair in newValue {
-                self.pathAddressPairs.append(PathAddressPair(path: pair.0, address: pair.1))
+                pathAddressPairs.append(PathAddressPair(path: pair.0, address: pair.1))
             }
         }
     }
@@ -65,14 +64,13 @@ public struct KeystoreParamsBIP32: AbstractKeystoreParams {
     var rootPath: String?
 
     public init(crypto cr: CryptoParamsV3, id i: String, version ver: Int = 32, rootPath: String? = nil) {
-        self.crypto = cr
-        self.id = i
-        self.version = ver
+        crypto = cr
+        id = i
+        version = ver
         pathAddressPairs = [PathAddressPair]()
         self.rootPath = rootPath
-        self.isHDWallet = true
+        isHDWallet = true
     }
-
 }
 
 public struct KeystoreParamsV3: AbstractKeystoreParams {
@@ -85,10 +83,9 @@ public struct KeystoreParamsV3: AbstractKeystoreParams {
 
     public init(address ad: String?, crypto cr: CryptoParamsV3, id i: String, version ver: Int) {
         address = ad
-        self.crypto = cr
-        self.id = i
-        self.version = ver
-        self.isHDWallet = false
+        crypto = cr
+        id = i
+        version = ver
+        isHDWallet = false
     }
-
 }

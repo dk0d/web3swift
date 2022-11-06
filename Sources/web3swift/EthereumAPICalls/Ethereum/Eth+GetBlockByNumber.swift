@@ -7,14 +7,15 @@ import Foundation
 import BigInt
 import Core
 
-extension Web3.Eth {
+
+extension Web3Provider {
     public func block(by hash: Hash, fullTransactions: Bool = false) async throws -> Block {
-        let request = APIRequest.getBlockByHash(hash, fullTransactions)
-        return try await APIRequest.sendRequest(with: provider, for: request).result
+        let requestCall: APIRequest = .getBlockByHash(hash, fullTransactions)
+        return try await APIRequest.send(apiRequest: requestCall, with: api).result
     }
 
     public func block(by number: BlockNumber, fullTransactions: Bool = false) async throws -> Block {
-        let request = APIRequest.getBlockByNumber(number, fullTransactions)
-        return try await APIRequest.sendRequest(with: provider, for: request).result
+        let requestCall: APIRequest = .getBlockByNumber(number, fullTransactions)
+        return try await APIRequest.send(apiRequest: requestCall, with: api).result
     }
 }

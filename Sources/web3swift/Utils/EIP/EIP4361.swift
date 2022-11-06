@@ -4,9 +4,9 @@
 //  Created by JeneaVranceanu at 19.09.2022.
 //
 
-import Foundation
 import BigInt
 import Core
+import Foundation
 
 public typealias SIWE = EIP4361
 
@@ -44,20 +44,19 @@ private let uriPattern = "(([^:?#\\s]+):)?(([^?#\\s]*))?([^?#\\s]*)(\\?([^#\\s]*
 /// }
 /// ```
 public final class EIP4361 {
-
     public enum EIP4361Field: String {
-        case domain = "domain"
-        case address = "address"
-        case statement = "statement"
-        case uri = "uri"
-        case version = "version"
-        case chainId = "chainId"
-        case nonce = "nonce"
-        case issuedAt = "issuedAt"
-        case expirationTime = "expirationTime"
-        case notBefore = "notBefore"
-        case requestId = "requestId"
-        case resources = "resources"
+        case domain
+        case address
+        case statement
+        case uri
+        case version
+        case chainId
+        case nonce
+        case issuedAt
+        case expirationTime
+        case notBefore
+        case requestId
+        case resources
     }
 
     private static let domain = "(?<\(EIP4361Field.domain.rawValue)>([^?#]*)) wants you to sign in with your Ethereum account:"
@@ -122,7 +121,7 @@ public final class EIP4361 {
             capturedFields[.init(rawValue: key)!] = value
         }
         return EIP4361ValidationResponse(isEIP4361: true,
-                                  eip4361: EIP4361(message),
+                                         eip4361: EIP4361(message),
                                          capturedFields: capturedFields)
     }
 
@@ -176,7 +175,7 @@ public final class EIP4361 {
 
         self.domain = domain
         self.address = address
-        self.statement = groups["statement"]
+        statement = groups["statement"]
         self.uri = uri
         self.version = version
         self.chainId = chainId

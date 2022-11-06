@@ -5,22 +5,22 @@
 
 import Foundation
 
-public struct ABI { }
+public struct ABI {}
 
 protocol ABIElementPropertiesProtocol {
-    var isStatic: Bool {get}
-    var isArray: Bool {get}
-    var isTuple: Bool {get}
-    var arraySize: ABI.Element.ArraySize {get}
-    var subtype: ABI.Element.ParameterType? {get}
-    var memoryUsage: UInt64 {get}
-    var emptyValue: Any {get}
+    var isStatic: Bool { get }
+    var isArray: Bool { get }
+    var isTuple: Bool { get }
+    var arraySize: ABI.Element.ArraySize { get }
+    var subtype: ABI.Element.ParameterType? { get }
+    var memoryUsage: UInt64 { get }
+    var emptyValue: Any { get }
 }
 
 protocol ABIEncoding {
-    var abiRepresentation: String {get}
+    var abiRepresentation: String { get }
 }
 
 protocol ABIValidation {
-    var isValid: Bool {get}
+    var isValid: Bool { get }
 }

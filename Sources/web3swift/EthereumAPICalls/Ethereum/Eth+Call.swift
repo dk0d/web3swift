@@ -6,9 +6,10 @@
 import Foundation
 import Core
 
-extension Web3.Eth {
+
+extension Web3Provider {
     public func callTransaction(_ transaction: CodableTransaction) async throws -> Data {
-        let request = APIRequest.call(transaction, transaction.callOnBlock ?? .latest)
-        return try await APIRequest.sendRequest(with: provider, for: request).result
+        let request: APIRequest = .call(transaction, transaction.callOnBlock ?? .latest)
+        return try await APIRequest.send(apiRequest: request, with: api).result
     }
 }

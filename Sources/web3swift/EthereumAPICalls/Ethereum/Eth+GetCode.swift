@@ -7,9 +7,8 @@ import Foundation
 import Core
 import BigInt
 
-extension Web3.Eth {
+extension Web3Provider {
     public func code(for address: EthereumAddress, onBlock: BlockNumber = .latest) async throws -> Hash {
-        let request = APIRequest.getCode(address.address, onBlock)
-        return try await APIRequest.sendRequest(with: provider, for: request).result
+        try await APIRequest.send(apiRequest: .getCode(address.address, onBlock), with: api).result
     }
 }

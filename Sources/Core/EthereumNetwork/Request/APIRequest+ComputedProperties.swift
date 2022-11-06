@@ -8,78 +8,72 @@
 import Foundation
 
 extension APIRequest {
-    var method: REST {
-        switch self {
-        default: return .POST
-        }
-    }
 
-   public var encodedBody: Data {
-        let request = RequestBody(method: self.call, params: self.parameters)
-        // this is safe to force try this here
-        // Because request must failed to compile if it not conformable with `Encodable` protocol
-        return try! JSONEncoder().encode(request)
-    }
+    public var requestEncoded: Data { rest.requestEncoded }
 
-    var parameters: [RequestParameter] {
+    public var rest: REST {
         switch self {
         case .gasPrice, .blockNumber, .getNetwork, .getAccounts, .getTxPoolStatus, .getTxPoolContent:
-            return [RequestParameter]()
+            return .POST(method, .array([RequestParameter]()))
 
         case .estimateGas(let transactionParameters, let blockNumber):
-            return [.transaction(transactionParameters), .string(blockNumber.description)]
+            return .POST(method, .array(([.transaction(transactionParameters), .string(blockNumber.description)])))
 
         case let .sendRawTransaction(hash):
-            return [.string(hash)]
+            return .POST(method, .array(([.string(hash)])))
 
         case let .sendTransaction(transactionParameters):
-            return [.transaction(transactionParameters)]
+            return .POST(method, .array(([.transaction(transactionParameters)])))
 
         case .getTransactionByHash(let hash):
-            return [.string(hash)]
+            return .POST(method, .array(([.string(hash)])))
 
         case .getTransactionReceipt(let receipt):
-            return [.string(receipt)]
+            return .POST(method, .array(([.string(receipt)])))
 
         case .getLogs(let eventFilterParameters):
-            return [.eventFilter(eventFilterParameters)]
+            return .POST(method, .array(([.eventFilter(eventFilterParameters)])))
 
         case .personalSign(let address, let string):
-            return [.string(address), .string(string)]
+            return .POST(method, .array(([.string(address), .string(string)])))
 
         case .call(let transactionParameters, let blockNumber):
-            return [.transaction(transactionParameters), .string(blockNumber.description)]
+            return .POST(method, .array(([.transaction(transactionParameters), .string(blockNumber.description)])))
 
         case .getTransactionCount(let address, let blockNumber):
-            return [.string(address), .string(blockNumber.description)]
+            return .POST(method, .array(([.string(address), .string(blockNumber.description)])))
 
         case .getBalance(let address, let blockNumber):
-            return [.string(address), .string(blockNumber.description)]
+            return .POST(method, .array(([.string(address), .string(blockNumber.description)])))
 
         case .getStorageAt(let address, let bigUInt, let blockNumber):
-            return [.string(address), .string(bigUInt.hexString), .string(blockNumber.description)]
+            return .POST(method, .array(([.string(address), .string(bigUInt.hexString), .string(blockNumber.description)])))
 
         case .getCode(let address, let blockNumber):
-            return [.string(address), .string(blockNumber.description)]
+            return .POST(method, .array(([.string(address), .string(blockNumber.description)])))
 
         case .getBlockByHash(let hash, let bool):
-            return [.string(hash), .bool(bool)]
+            return .POST(method, .array(([.string(hash), .bool(bool)])))
 
         case .getBlockByNumber(let block, let bool):
-            return [.string(block.description), .bool(bool)]
+            return .POST(method, .array(([.string(block.description), .bool(bool)])))
 
         case .feeHistory(let uInt, let blockNumber, let array):
-            return [.string(uInt.hexString), .string(blockNumber.description), .doubleArray(array)]
+            return .POST(method, .array(([.string(uInt.hexString), .string(blockNumber.description), .doubleArray(array)])))
 
         case .createAccount(let string):
-            return [.string(string)]
+            return .POST(method, .array(([.string(string)])))
 
         case .unlockAccount(let address, let string, let uInt):
-            return [.string(address), .string(string), .uint(uInt ?? 0)]
+            return .POST(method, .array(([.string(address), .string(string), .uint(uInt ?? 0)])))
+
+        case .custom(_, let rest):
+            return rest
+
         }
     }
 
-    public var call: String {
+    public var method: String {
         switch self {
         case .gasPrice: return "eth_gasPrice"
         case .blockNumber: return "eth_blockNumber"
@@ -105,6 +99,11 @@ extension APIRequest {
         case .createAccount: return "personal_createAccount"
         case .getTxPoolStatus: return "txpool_status"
         case .getTxPoolContent: return "txpool_content"
+        case .custom(_, let rest):
+            switch rest {
+            case .POST(let m, _): return m ?? ""
+            case .GET(let m, _): return m ?? ""
+            }
         }
     }
 }

@@ -9,7 +9,7 @@ import Foundation
 import BigInt
 
 public enum BlockNumber: CustomStringConvertible {
-
+    
     case pending
     /// Latest block of a chain
     case latest
@@ -28,7 +28,7 @@ public enum BlockNumber: CustomStringConvertible {
         case .earliest:
             return "earliest"
         case .exact(let number):
-            return String(number, radix: 16).addHexPrefix()
+            return String(number, radix: 16).add0x
         }
     }
 }
@@ -40,14 +40,14 @@ extension BlockNumber: APIRequestParameterType {
     }
 }
 
-extension BlockNumber: Policyable {
-    public func resolve(provider: Web3Provider, transaction: CodableTransaction?) async throws -> BigUInt {
+extension BlockNumber: PolicyResolvable {
+    public func resolve(api: Web3API, transaction: CodableTransaction?) async throws -> BigUInt {
         guard let transaction = transaction else { throw Web3Error.valueError }
         switch self {
         case .pending, .latest, .earliest:
             guard let address = transaction.from ?? transaction.sender else { throw Web3Error.valueError }
             let request: APIRequest = .getTransactionCount(address.address, transaction.callOnBlock ?? .latest)
-            let response: APIResponse<BigUInt> = try await APIRequest.sendRequest(with: provider, for: request)
+            let response: APIResponse<BigUInt> = try await APIRequest.send(apiRequest: request, with: api)
             return response.result
         case .exact(let value):
             return value

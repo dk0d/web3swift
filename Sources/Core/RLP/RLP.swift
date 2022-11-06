@@ -6,10 +6,10 @@
 //  Copyright © 2018 Alex Vlasov. All rights reserved.
 //
 
-import Foundation
 import BigInt
+import Foundation
 
-public struct RLP {
+public enum RLP {
     enum Error: Swift.Error {
         case encodingError
         case decodingError
@@ -34,12 +34,12 @@ public struct RLP {
         if let hexData = Data.fromHex(string) {
             return encode(hexData)
         }
-        guard let data = string.data(using: .utf8) else {return nil}
+        guard let data = string.data(using: .utf8) else { return nil }
         return encode(data)
     }
 
     internal static func encode(_ number: Int) -> Data? {
-        guard number >= 0 else {return nil}
+        guard number >= 0 else { return nil }
         let uint = UInt(number)
         return encode(uint)
     }
@@ -55,10 +55,10 @@ public struct RLP {
     }
 
     internal static func encode(_ data: Data) -> Data? {
-        if data.count == 1 && data.bytes[0] < UInt8(0x80) {
+        if data.count == 1, data.bytes[0] < UInt8(0x80) {
             return data
         } else {
-            guard let length = encodeLength(data.count, offset: UInt8(0x80)) else {return nil}
+            guard let length = encodeLength(data.count, offset: UInt8(0x80)) else { return nil }
             var encoded = Data()
             encoded.append(length)
             encoded.append(data)
@@ -77,12 +77,12 @@ public struct RLP {
     internal static func encodeLength(_ length: BigUInt, offset: UInt8) -> Data? {
         if length < length56 {
             let encodedLength = length + BigUInt(UInt(offset))
-            guard encodedLength.bitWidth <= 8 else {return nil}
+            guard encodedLength.bitWidth <= 8 else { return nil }
             return encodedLength.serialize()
         } else if length < lengthMax {
             let encodedLength = length.serialize()
             let len = BigUInt(UInt(encodedLength.count))
-            guard let prefix = lengthToBinary(len) else {return nil}
+            guard let prefix = lengthToBinary(len) else { return nil }
             let lengthPrefix = prefix + offset + UInt8(55)
             var encoded = Data([lengthPrefix])
             encoded.append(encodedLength)
@@ -97,7 +97,7 @@ public struct RLP {
         }
         let divisor = BigUInt(256)
         var encoded = Data()
-        guard let prefix = lengthToBinary(length/divisor) else {return nil}
+        guard let prefix = lengthToBinary(length / divisor) else { return nil }
         let suffix = length % divisor
 
         var prefixData = Data([prefix])
@@ -108,7 +108,7 @@ public struct RLP {
 
         encoded.append(prefixData)
         encoded.append(suffixData)
-        guard encoded.count == 1 else {return nil}
+        guard encoded.count == 1 else { return nil }
         return encoded.bytes[0]
     }
 
@@ -119,12 +119,12 @@ public struct RLP {
             if let encoded = encode(e) {
                 encodedData.append(encoded)
             } else {
-                guard let asArray = e as? [AnyObject] else {return nil}
-                guard let encoded = encode(asArray) else {return nil}
+                guard let asArray = e as? [AnyObject] else { return nil }
+                guard let encoded = encode(asArray) else { return nil }
                 encodedData.append(encoded)
             }
         }
-        guard var encodedLength = encodeLength(encodedData.count, offset: UInt8(0xc0)) else {return nil}
+        guard var encodedLength = encodeLength(encodedData.count, offset: UInt8(0xC0)) else { return nil }
         if encodedLength != Data() {
             encodedLength.append(encodedData)
         }
@@ -132,7 +132,7 @@ public struct RLP {
     }
 
     internal static func decode(_ raw: String) -> RLPItem? {
-        guard let rawData = Data.fromHex(raw) else {return nil}
+        guard let rawData = Data.fromHex(raw) else { return nil }
         return decode(rawData)
     }
 
@@ -144,18 +144,18 @@ public struct RLP {
         var bytesToParse = Data(raw)
         while bytesToParse.count != 0 {
             let (of, dl, t) = decodeLength(bytesToParse)
-            guard let offset = of, let dataLength = dl, let type = t else {return nil}
+            guard let offset = of, let dataLength = dl, let type = t else { return nil }
             switch type {
             case .empty:
                 break
             case .data:
-                guard let slice = try? slice(data: bytesToParse, offset: offset, length: dataLength) else {return nil}
+                guard let slice = try? slice(data: bytesToParse, offset: offset, length: dataLength) else { return nil }
                 let data = Data(slice)
-                let rlpItem = RLPItem.init(content: .data(data))
+                let rlpItem = RLPItem(content: .data(data))
                 outputArray.append(rlpItem)
             case .list:
-                guard let slice = try? slice(data: bytesToParse, offset: offset, length: dataLength) else {return nil}
-                guard let inside = decode(Data(slice)) else {return nil}
+                guard let slice = try? slice(data: bytesToParse, offset: offset, length: dataLength) else { return nil }
+                guard let inside = decode(Data(slice)) else { return nil }
                 switch inside.content {
                 case .data:
                     return nil
@@ -163,14 +163,13 @@ public struct RLP {
                     outputArray.append(inside)
                 }
             }
-            guard let tail = try? slice(data: bytesToParse, start: offset + dataLength) else {return nil}
+            guard let tail = try? slice(data: bytesToParse, start: offset + dataLength) else { return nil }
             bytesToParse = tail
         }
-        return RLPItem.init(content: .list(outputArray, 0, Data(raw)))
+        return RLPItem(content: .list(outputArray, 0, Data(raw)))
     }
 
     public struct RLPItem {
-
         enum UnderlyingType {
             case empty
             case data
@@ -186,7 +185,7 @@ public struct RLP {
         public var content: RLPContent
 
         public var isData: Bool {
-            switch self.content {
+            switch content {
             case .noItem:
                 return false
             case .data:
@@ -197,7 +196,7 @@ public struct RLP {
         }
 
         public var isList: Bool {
-            switch self.content {
+            switch content {
             case .noItem:
                 return false
             case .data:
@@ -206,41 +205,36 @@ public struct RLP {
                 return true
             }
         }
+
         public var count: Int? {
-            switch self.content {
+            switch content {
             case .noItem:
                 return nil
             case .data:
                 return nil
-            case .list(let list, _, _):
+            case let .list(list, _, _):
                 return list.count
             }
         }
 
         public subscript(index: Int) -> RLPItem? {
-            get {
-                guard case .list(let list, _, _) = self.content else {return nil}
-                let item = list[index]
-                return item
-            }
+            guard case let .list(list, _, _) = content else { return nil }
+            let item = list[index]
+            return item
         }
 
-        public var data: Data? {
-            return self.getData()
-        }
+        public var data: Data? { getData() }
 
         public func getData() -> Data? {
-            if self.isList {
-                guard case .list(_, _, let rawContent) = self.content else {return nil}
+            if isList {
+                guard case let .list(_, _, rawContent) = content else { return nil }
                 return rawContent
             }
-            guard case .data(let data) = self.content else {return nil}
+            guard case let .data(data) = content else { return nil }
             return data
         }
 
-        public static var noItem: RLPItem {
-            return RLPItem.init(content: .noItem)
-        }
+        public static var noItem: RLPItem { RLPItem(content: .noItem) }
     }
 
     internal static func decodeLength(_ input: Data) -> (offset: BigUInt?, length: BigUInt?, type: RLPItem.UnderlyingType?) {
@@ -250,21 +244,21 @@ public struct RLP {
                 return (0, 0, .empty)
             }
             let prefixByte = input[0]
-            if prefixByte <= 0x7f {
+            if prefixByte <= 0x7F {
                 return (BigUInt(0), BigUInt(1), .data)
-            } else if prefixByte <= 0xb7 && length > BigUInt(prefixByte - 0x80) {
+            } else if prefixByte <= 0xB7, length > BigUInt(prefixByte - 0x80) {
                 let dataLength = BigUInt(prefixByte - 0x80)
                 return (BigUInt(1), dataLength, .data)
-            } else if try prefixByte <= 0xbf && length > BigUInt(prefixByte - 0xb7) && length >  BigUInt(prefixByte - 0xb7) + toBigUInt(slice(data: input, offset: BigUInt(1), length: BigUInt(prefixByte - 0xb7))) {
-                let lengthOfLength = BigUInt(prefixByte - 0xb7)
-                let dataLength = try toBigUInt(slice(data: input, offset: BigUInt(1), length: BigUInt(prefixByte - 0xb7)))
+            } else if try prefixByte <= 0xBF && length > BigUInt(prefixByte - 0xB7) && length > BigUInt(prefixByte - 0xB7) + toBigUInt(slice(data: input, offset: BigUInt(1), length: BigUInt(prefixByte - 0xB7))) {
+                let lengthOfLength = BigUInt(prefixByte - 0xB7)
+                let dataLength = try toBigUInt(slice(data: input, offset: BigUInt(1), length: BigUInt(prefixByte - 0xB7)))
                 return (1 + lengthOfLength, dataLength, .data)
-            } else if prefixByte <= 0xf7 && length > BigUInt(prefixByte - 0xc0) {
-                let listLen = BigUInt(prefixByte - 0xc0)
+            } else if prefixByte <= 0xF7, length > BigUInt(prefixByte - 0xC0) {
+                let listLen = BigUInt(prefixByte - 0xC0)
                 return (1, listLen, .list)
-            } else if try prefixByte <= 0xff && length > BigUInt(prefixByte - 0xf7) && length > BigUInt(prefixByte - 0xf7) + toBigUInt(slice(data: input, offset: BigUInt(1), length: BigUInt(prefixByte - 0xf7))) {
-                let lengthOfListLength = BigUInt(prefixByte - 0xf7)
-                let listLength = try toBigUInt(slice(data: input, offset: BigUInt(1), length: BigUInt(prefixByte - 0xf7)))
+            } else if try prefixByte <= 0xFF && length > BigUInt(prefixByte - 0xF7) && length > BigUInt(prefixByte - 0xF7) + toBigUInt(slice(data: input, offset: BigUInt(1), length: BigUInt(prefixByte - 0xF7))) {
+                let lengthOfListLength = BigUInt(prefixByte - 0xF7)
+                let listLength = try toBigUInt(slice(data: input, offset: BigUInt(1), length: BigUInt(prefixByte - 0xF7)))
                 return (1 + lengthOfListLength, listLength, .list)
             } else {
                 return (nil, nil, nil)
@@ -275,13 +269,13 @@ public struct RLP {
     }
 
     internal static func slice(data: Data, offset: BigUInt, length: BigUInt) throws -> Data {
-        if BigUInt(data.count) < offset + length {throw Error.encodingError}
+        if BigUInt(data.count) < offset + length { throw Error.encodingError }
         let slice = data[UInt64(offset) ..< UInt64(offset + length)]
         return Data(slice)
     }
 
     internal static func slice(data: Data, start: BigUInt) throws -> Data {
-        if BigUInt(data.count) < start {throw Error.encodingError}
+        if BigUInt(data.count) < start { throw Error.encodingError }
         let slice = data[UInt64(start) ..< UInt64(data.count)]
         return Data(slice)
     }
@@ -290,17 +284,14 @@ public struct RLP {
         if raw.count == 0 {
             throw Error.encodingError
         } else if raw.count == 1 {
-            return BigUInt.init(raw)
+            return BigUInt(raw)
         } else {
             let slice = raw[0 ..< raw.count - 1]
-            return try BigUInt(raw[raw.count-1]) + toBigUInt(slice)*256
+            return try BigUInt(raw[raw.count - 1]) + toBigUInt(slice) * 256
         }
     }
 }
 
-fileprivate extension Data {
-
-    var bytes: [UInt8] {
-        return Array(self)
-    }
+private extension Data {
+    var bytes: [UInt8] { Array(self) }
 }

@@ -11,25 +11,27 @@ public extension NSRegularExpression {
     private func getNamedCaptureGroups() -> [String: GroupNamesSearchResult] {
         var groupnames = [String: GroupNamesSearchResult]()
 
-        guard let greg = try? NSRegularExpression(pattern: "\\(\\?<([\\w\\a_-]*)>$",
-                                                  options: .dotMatchesLineSeparators),
-              let reg = try? NSRegularExpression(pattern: "\\(.*?>",
-                                                 options: .dotMatchesLineSeparators) else {
-            // This never happens but the alternative is to make this method throwing
-            return groupnames
-        }
-
-        let m = reg.matches(in: pattern, options: .withTransparentBounds, range: pattern.fullNSRange)
-        for (nameIndex, g) in m.enumerated() {
-            let r = pattern.range(from: g.range(at: 0))
-            let gstring = String(pattern[r!])
-            let gmatch = greg.matches(in: gstring, options: [], range: gstring.fullNSRange)
-            if gmatch.count > 0 {
-                let r2 = gstring.range(from: gmatch[0].range(at: 1))!
-                groupnames[String(gstring[r2])] = (g, gmatch[0], nameIndex)
+        do {
+            let greg = try NSRegularExpression(
+                pattern: "\\(\\?<([\\w\\a_-]*)>$",
+                options: .dotMatchesLineSeparators
+            )
+            let reg = try NSRegularExpression(
+                pattern: "\\(.*?>",
+                options: .dotMatchesLineSeparators
+            )
+            let m = reg.matches(in: pattern, options: .withTransparentBounds, range: pattern.fullNSRange)
+            for (nameIndex, g) in m.enumerated() {
+                let r = pattern.range(from: g.range(at: 0))
+                let gstring = String(pattern[r!])
+                let gmatch = greg.matches(in: gstring, options: [], range: gstring.fullNSRange)
+                if gmatch.count > 0 {
+                    let r2 = gstring.range(from: gmatch[0].range(at: 1))!
+                    groupnames[String(gstring[r2])] = (g, gmatch[0], nameIndex)
+                }
             }
+        } catch {}
 
-        }
         return groupnames
     }
 
@@ -44,7 +46,7 @@ public extension NSRegularExpression {
             return dict
         }
         for name in getNamedCaptureGroups().keys {
-            guard let stringRange = string.range(from: match.range(withName: name)) else {continue}
+            guard let stringRange = string.range(from: match.range(withName: name)) else { continue }
             dict[name] = String(string[stringRange])
         }
         return dict

@@ -7,8 +7,9 @@ import Foundation
 import BigInt
 import Core
 
-extension Web3.Eth {
+
+extension Web3Provider {
     public func blockNumber() async throws -> BigUInt {
-        try await APIRequest.sendRequest(with: web3.provider, for: .blockNumber).result
+        try await APIRequest.send(apiRequest: .blockNumber, with: api).result
     }
 }

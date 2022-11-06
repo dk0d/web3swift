@@ -27,8 +27,8 @@ public struct EIP2930Envelope: EIP2718Envelope {
     public var accessList: [AccessListEntry] = []
     public var publicKey: Data?
 
-    var maxFeePerGas: BigUInt?
-    var maxPriorityFeePerGas: BigUInt?
+    var maxFeePerGas: BigUInt? = nil
+    var maxPriorityFeePerGas: BigUInt? = nil
 
     // for CustomStringConvertible
     public var description: String {
@@ -40,7 +40,7 @@ public struct EIP2930Envelope: EIP2718Envelope {
         toReturn += "Gas limit: " + String(describing: self.gasLimit) + "\n"
         toReturn += "To: " + self.to.address + "\n"
         toReturn += "Value: " + String(describing: self.value) + "\n"
-        toReturn += "Data: " + self.data.toHexString().addHexPrefix().lowercased() + "\n"
+        toReturn += "Data: " + self.data.toHexString().add0x.lowercased() + "\n"
         toReturn += "Access List: " + String(describing: accessList) + "\n"
         toReturn += "v: " + String(self.v) + "\n"
         toReturn += "r: " + String(self.r) + "\n"
@@ -333,7 +333,7 @@ public struct AccessListEntry: CustomStringConvertible, Codable {
 //        var keyStrings: [String] = []
 //        for key in storageKeys {
 //            guard let keyString = key.abiEncode(bits: 256) else { return nil }
-//            keyStrings.append(keyString.toHexString().addHexPrefix())
+//            keyStrings.append(keyString.toHexString().add0x)
 //        }
 //        return AccessListEntry(address: addrString, storageKeys: keyStrings)
 //    }

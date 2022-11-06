@@ -103,6 +103,6 @@ class EthereumContractTest: LocalTestCase {
     }
 }
 
-private func getFuncSignature(_ string: String) -> String {
-    return String(string.sha3(.keccak256).prefix(8)).lowercased().addHexPrefix()
+fileprivate func getFuncSignature(_ string: String) -> String {
+    return String(string.sha3(.keccak256).prefix(8)).lowercased().add0x
 }

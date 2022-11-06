@@ -245,7 +245,7 @@
   
     this.decoders = {};
     this.encoders = {};
-  };
+  }
   
   Entity.prototype._createNamed = function createNamed(base) {
     var named;
@@ -1158,7 +1158,7 @@
   function ReporterError(path, msg) {
     this.path = path;
     this.rethrow(msg);
-  };
+  }
   inherits(ReporterError, Error);
   
   ReporterError.prototype.rethrow = function rethrow(msg) {
@@ -1260,7 +1260,7 @@
     // Construct base tree
     this.tree = new DERNode();
     this.tree._init(entity.body);
-  };
+  }
   module.exports = DERDecoder;
   
   DERDecoder.prototype.decode = function decode(data, options) {
@@ -1583,7 +1583,7 @@
   function PEMDecoder(entity) {
     DERDecoder.call(this, entity);
     this.enc = 'pem';
-  };
+  }
   inherits(PEMDecoder, DERDecoder);
   module.exports = PEMDecoder;
   
@@ -1643,7 +1643,7 @@
     // Construct base tree
     this.tree = new DERNode();
     this.tree._init(entity.body);
-  };
+  }
   module.exports = DEREncoder;
   
   DEREncoder.prototype.encode = function encode(data, reporter) {
@@ -1936,7 +1936,7 @@
   function PEMEncoder(entity) {
     DEREncoder.call(this, entity);
     this.enc = 'pem';
-  };
+  }
   inherits(PEMEncoder, DEREncoder);
   module.exports = PEMEncoder;
   
@@ -28530,7 +28530,7 @@
       }
       return checksum;
   }
-  ;
+
   function getAddress(address) {
       var result = null;
       if (typeof (address) !== 'string') {
@@ -29341,9 +29341,9 @@
       return BigNumber;
   }());
   exports.BigNumber = BigNumber;
-  ;
-  ;
-  ;
+
+
+
   ///////////////////////////////
   // Interface
   var Indexed = /** @class */ (function () {
@@ -29397,7 +29397,7 @@
       UnicodeNormalizationForm["NFKC"] = "NFKC";
       UnicodeNormalizationForm["NFKD"] = "NFKD";
   })(UnicodeNormalizationForm = exports.UnicodeNormalizationForm || (exports.UnicodeNormalizationForm = {}));
-  ;
+
   // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
   function toUtf8Bytes(str, form) {
       if (form === void 0) { form = UnicodeNormalizationForm.current; }
@@ -29432,7 +29432,7 @@
       return bytes_1.arrayify(result);
   }
   exports.toUtf8Bytes = toUtf8Bytes;
-  ;
+
   // http://stackoverflow.com/questions/13356493/decode-utf-8-with-javascript#13691499
   function toUtf8String(bytes) {
       bytes = bytes_1.arrayify(bytes);
@@ -29492,7 +29492,7 @@
               if (nextChar >> 6 != 0x02) {
                   break;
               }
-              ;
+
               res = (res << 6) | (nextChar & 0x3f);
           }
           if (count != extraLength) {
@@ -36569,7 +36569,7 @@
         fn === window.alert ||
         fn === window.confirm ||
         fn === window.prompt))
-  };
+  }
   
   },{}],185:[function(require,module,exports){
   /**
@@ -39187,7 +39187,7 @@
       // Detect buggy property enumeration order in older V8 versions.
   
       // https://bugs.chromium.org/p/v8/issues/detail?id=4118
-      var test1 = new String('abc');  // eslint-disable-line no-new-wrappers
+      var test1 = String('abc');  // eslint-disable-line no-new-wrappers
       test1[5] = 'de';
       if (Object.getOwnPropertyNames(test1)[0] === '5') {
         return false;
@@ -44478,7 +44478,7 @@
           } else {
               throw new Error('Requested too many random bytes.');
           }
-      };
+      }
   
   
       // is node
@@ -48993,7 +48993,7 @@
     };
   
     return semaphore;
-  };
+  }
   
   if (typeof exports === 'object') {
       // node export
@@ -50344,7 +50344,7 @@
         process.nextTick(function () {
           self.emit('error', err)
         })
-        return
+
       }
     }
   }
@@ -50497,7 +50497,7 @@
           write: function (chunk) {
             return new Promise(function (resolve, reject) {
               if (self._destroyed) {
-                return
+
               } else if(self.push(new Buffer(chunk))) {
                 resolve()
               } else {
@@ -50718,7 +50718,7 @@
           retried = true;
       }
     }
-  };
+  }
   
   // Do not cache `Buffer.isEncoding` when checking encoding names as some
   // modules monkey-patch it to support additional encodings
@@ -51043,7 +51043,7 @@
           fileInput = document.createElement("input");
           fileInput.addEventListener("change", fileLoader);
           fileInput.type = "file";
-        };
+        }
   
         var mouseEvent = document.createEvent("MouseEvents");
         mouseEvent.initEvent("click", true, false);
@@ -51292,8 +51292,8 @@
               if (route.length > 0) {
                 var filePath = path.join(dirPath, route);
                 downloads.push(downloadDataToDisk(swarmUrl)(routingTable[route])(filePath));
-              };
-            };
+              }
+            }
             return Promise.all(downloads).then(function () {
               return dirPath;
             });
@@ -51438,7 +51438,7 @@
               return uploadFileFromDisk(swarmUrl)(arg.path);
             case "directory":
               return uploadDirectoryFromDisk(swarmUrl)(arg.defaultFile)(arg.path);
-          };
+          }
   
           // Upload UTF-8 string or raw data (buffer)
         } else if (arg.length || typeof arg === "string") {
@@ -62101,7 +62101,7 @@
                   var keyValue = json.stringify(key)
                       + colonSeparator
                       + value;
-                  ;
+
                   out.push(indent + space + keyValue);
               }
               seen.splice(seen.indexOf(node), 1);
@@ -67904,7 +67904,7 @@
           if (this._restrictedMethods[method]) {
               throw new XMLHttpRequest.SecurityError("HTTP method " + method + " is not allowed in XHR");
           }
-          ;
+
           var xhrUrl = this._parseUrl(url, user, password);
           if (this.readyState === XMLHttpRequest.HEADERS_RECEIVED || this.readyState === XMLHttpRequest.LOADING) {
               // TODO(pwnall): terminate abort(), terminate send()

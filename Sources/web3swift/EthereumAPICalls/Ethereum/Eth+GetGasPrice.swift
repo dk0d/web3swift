@@ -7,8 +7,9 @@ import Foundation
 import BigInt
 import Core
 
-extension Web3.Eth {
+
+extension Web3Provider {
     public func gasPrice() async throws -> BigUInt {
-        try await APIRequest.sendRequest(with: self.provider, for: .gasPrice).result
+        try await APIRequest.send(apiRequest: .gasPrice, with: api).result
     }
 }

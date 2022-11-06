@@ -14,10 +14,10 @@ public struct PublicKey {
     public func getComponentsWithoutPrefix() -> PublicKey {
         var x = self.x
         var y = self.y
-        if x.hasHexPrefix() {
+        if x.hasHexPrefix {
             x.removeFirst(2)
         }
-        if y.hasHexPrefix() {
+        if y.hasHexPrefix {
             y.removeFirst(2)
         }
         return PublicKey(x: x, y: y)

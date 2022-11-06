@@ -6,8 +6,8 @@
 //  Copyright © 2018 Alex Vlasov. All rights reserved.
 //
 
-import Foundation
 import BigInt
+import Foundation
 
 /// Standard representation of a smart contract.
 ///
@@ -68,10 +68,10 @@ import BigInt
 /// ```
 public protocol ContractProtocol {
     /// Address of the referenced smart contract. Can be set later, e.g. if the contract is deploying and address is not yet known.
-    var address: EthereumAddress? {get set}
+    var address: EthereumAddress? { get set }
 
     /// All ABI elements like: events, functions, constructors and errors.
-    var abi: [ABI.Element] {get}
+    var abi: [ABI.Element] { get }
 
     /// Functions filtered from ``abi``.
     /// Functions are mapped to:
@@ -81,25 +81,25 @@ public protocol ContractProtocol {
     /// - and 4 bytes signature `0xffffffff` (expected to be lowercased).
     /// The mapping by name (e.g. `getData`) is the one most likely expected to return arrays with
     /// more than one entry due to the fact that solidity allows method overloading.
-    var methods: [String: [ABI.Element.Function]] {get}
+    var methods: [String: [ABI.Element.Function]] { get }
 
     /// All values from ``methods``.
-    var allMethods: [ABI.Element.Function] {get}
+    var allMethods: [ABI.Element.Function] { get }
 
     /// Events filtered from ``abi`` and mapped to their unchanged ``ABI/Element/Event/name``.
-    var events: [String: ABI.Element.Event] {get}
+    var events: [String: ABI.Element.Event] { get }
 
     /// All values from ``events``.
-    var allEvents: [ABI.Element.Event] {get}
+    var allEvents: [ABI.Element.Event] { get }
 
     /// Errors filtered from ``abi`` and mapped to their unchanged ``ABI/Element/EthError/name``.
-    var errors: [String: ABI.Element.EthError] {get}
+    var errors: [String: ABI.Element.EthError] { get }
 
     /// All values from ``errors``.
-    var allErrors: [ABI.Element.EthError] {get}
+    var allErrors: [ABI.Element.EthError] { get }
 
     /// Parsed from ABI or a default constructor with no input arguments.
-    var constructor: ABI.Element.Constructor {get}
+    var constructor: ABI.Element.Constructor { get }
 
     /// Required initializer that is capable of reading ABI in JSON format.
     /// - Parameters:
@@ -119,10 +119,12 @@ public protocol ContractProtocol {
     ///   - extraData: any extra data. It can be encoded input arguments for a constuctor but then you should set `constructor` and
     ///   `parameters` to be `nil`.
     /// - Returns: Encoded data for a given parameters, which is should be assigned to ``CodableTransaction.data`` property
-    func deploy(bytecode: Data,
-                constructor: ABI.Element.Constructor?,
-                parameters: [AnyObject]?,
-                extraData: Data?) -> Data?
+    func deploy(
+        bytecode: Data,
+        constructor: ABI.Element.Constructor?,
+        parameters: [AnyObject]?,
+        extraData: Data?
+    ) -> Data?
 
     /// Creates function call transaction with data set as `method` encoded with given `parameters`.
     /// The `method` must be part of the ABI used to init this contract.
@@ -178,28 +180,33 @@ public protocol ContractProtocol {
 // MARK: - Overloaded ContractProtocol's functions
 
 extension ContractProtocol {
-
     /// Overloading of ``ContractProtocol/deploy(bytecode:constructor:parameters:extraData:)`` to allow
     /// omitting evertyhing but `bytecode`.
     ///
     /// See ``ContractProtocol/deploy(bytecode:constructor:parameters:extraData:)`` for details.
-    func deploy(_ bytecode: Data,
-                constructor: ABI.Element.Constructor? = nil,
-                parameters: [AnyObject]? = nil,
-                extraData: Data? = nil) -> Data? {
-        deploy(bytecode: bytecode,
-               constructor: constructor,
-               parameters: parameters,
-               extraData: extraData)
+    func deploy(
+        _ bytecode: Data,
+        constructor: ABI.Element.Constructor? = nil,
+        parameters: [AnyObject]? = nil,
+        extraData: Data? = nil
+    ) -> Data? {
+        deploy(
+            bytecode: bytecode,
+            constructor: constructor,
+            parameters: parameters,
+            extraData: extraData
+        )
     }
 
     /// Overloading of ``ContractProtocol/method(_:parameters:extraData:)`` to allow
     /// omitting `extraData` and `parameters` if `method` does not expect any.
     ///
     /// See ``ContractProtocol/method(_:parameters:extraData:)`` for details.
-    func method(_ method: String = "fallback",
-                parameters: [AnyObject]? = nil,
-                extraData: Data? = nil) -> Data? {
+    func method(
+        _ method: String = "fallback",
+        parameters: [AnyObject]? = nil,
+        extraData: Data? = nil
+    ) -> Data? {
         self.method(method, parameters: parameters ?? [], extraData: extraData)
     }
 
@@ -213,20 +220,28 @@ extension ContractProtocol {
 
 /// Contains default implementations of all functions of ``ContractProtocol``.
 public protocol DefaultContractProtocol: ContractProtocol {}
-extension DefaultContractProtocol {
+
+public extension DefaultContractProtocol {
     // MARK: Writing Data flow
-    public func deploy(bytecode: Data,
-                       constructor: ABI.Element.Constructor?,
-                       parameters: [AnyObject]?,
-                       extraData: Data?) -> Data? {
+
+    func deploy(
+        bytecode: Data,
+        constructor: ABI.Element.Constructor?,
+        parameters: [AnyObject]?,
+        extraData: Data?
+    ) -> Data? {
         var fullData = bytecode
 
         if let constructor = constructor,
            let parameters = parameters,
            !parameters.isEmpty {
             guard constructor.inputs.count == parameters.count,
-                  let encodedData = constructor.encodeParameters(parameters) else {
-                NSLog("Constructor encoding will fail as the number of input arguments doesn't match the number of given arguments.")
+                  // FIXME: This should be zipped, because Arrays don't guarantee it's elements order
+                  let encodedData = constructor.encodeParameters(parameters)
+            else {
+                NSLog(
+                    "Constructor encoding will fail as the number of input arguments doesn't match the number of given arguments."
+                )
                 return nil
             }
             fullData.append(encodedData)
@@ -237,6 +252,7 @@ extension DefaultContractProtocol {
         }
 
         // MARK: Writing Data flow
+
         return fullData
     }
 
@@ -252,19 +268,24 @@ extension DefaultContractProtocol {
     ///   - value: 0
     ///   - data: parameters + extraData
     ///   - params: EthereumParameters with no contract method call encoded data.
-    public func method(_ method: String,
-                       parameters: [AnyObject],
-                       extraData: Data?) -> Data? {
+    func method(
+        _ method: String,
+        parameters: [AnyObject],
+        extraData: Data?
+    ) -> Data? {
         // MARK: - Encoding ABI Data flow
+
         if method == "fallback" {
             return extraData ?? Data()
         }
 
-        let method = Data.fromHex(method) == nil ? method : method.addHexPrefix().lowercased()
+        let method = Data.fromHex(method) == nil ? method : method.add0x.lowercased()
 
         // MARK: - Encoding ABI Data flow
+
         guard let abiMethod = methods[method]?.first,
-              var encodedData = abiMethod.encodeParameters(parameters) else { return nil }
+              var encodedData = abiMethod.encodeParameters(parameters)
+        else { return nil }
 
         // Extra data just appends in the end of parameters data
         if let extraData = extraData {
@@ -272,11 +293,12 @@ extension DefaultContractProtocol {
         }
 
         // MARK: - Encoding ABI Data flow
+
         return encodedData
     }
 
-    public func parseEvent(_ eventLog: EventLog) -> (eventName: String?, eventData: [String: Any]?) {
-        for (eName, ev) in self.events {
+    func parseEvent(_ eventLog: EventLog) -> (eventName: String?, eventData: [String: Any]?) {
+        for (eName, ev) in events {
             if !ev.anonymous {
                 if eventLog.topics[0] != ev.topic {
                     continue
@@ -300,7 +322,7 @@ extension DefaultContractProtocol {
         return (nil, nil)
     }
 
-    public func testBloomForEventPresence(eventName: String, bloom: EthereumBloomFilter) -> Bool? {
+    func testBloomForEventPresence(eventName: String, bloom: EthereumBloomFilter) -> Bool? {
         guard let event = events[eventName] else { return nil }
         if event.anonymous {
             return true
@@ -308,29 +330,31 @@ extension DefaultContractProtocol {
         return bloom.test(topic: event.topic)
     }
 
-    public func decodeReturnData(_ method: String, data: Data) -> [String: Any]? {
+    func decodeReturnData(_ method: String, data: Data) -> [String: Any]? {
         if method == "fallback" {
             return [String: Any]()
         }
-        return methods[method]?.compactMap({ function in
-            return function.decodeReturnData(data)
-        }).first
+        return methods[method]?.compactMap { function in
+                                   function.decodeReturnData(data)
+                               }
+                               .first
     }
 
-    public func decodeInputData(_ method: String, data: Data) -> [String: Any]? {
+    func decodeInputData(_ method: String, data: Data) -> [String: Any]? {
         if method == "fallback" {
             return nil
         }
-        return methods[method]?.compactMap({ function in
-            return function.decodeInputData(data)
-        }).first
+        return methods[method]?.compactMap { function in
+                                   function.decodeInputData(data)
+                               }
+                               .first
     }
 
-    public func decodeInputData(_ data: Data) -> [String: Any]? {
+    func decodeInputData(_ data: Data) -> [String: Any]? {
         guard data.count % 32 == 4 else { return nil }
-        let methodSignature = data[0..<4].toHexString().addHexPrefix().lowercased()
+        let methodSignature = data[0..<4].toHexString().add0x.lowercased()
 
         guard let function = methods[methodSignature]?.first else { return nil }
-        return function.decodeInputData(Data(data[4 ..< data.count]))
+        return function.decodeInputData(Data(data[4..<data.count]))
     }
 }

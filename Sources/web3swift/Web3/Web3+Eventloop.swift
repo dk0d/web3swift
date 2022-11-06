@@ -4,47 +4,70 @@
 //
 
 import Foundation
+import Core
 
-extension Web3.Eventloop {
+extension Web3 {
 
-    // @available(iOS 10.0, *)
-    public func start(_ timeInterval: TimeInterval) {
-        if self.timer != nil {
-            self.timer!.suspend()
-            self.timer = nil
+    public class Eventloop {
+
+        public typealias EventLoopCall = (Web3) async -> Void
+        public typealias EventLoopContractCall = (Contract) -> Void
+
+        public struct MonitoredProperty {
+            public var name: String
+            public var calledFunction: EventLoopCall
         }
 
-        self.timer = RepeatingTimer(timeInterval: timeInterval)
-        self.timer?.eventHandler = self.runnable
-        self.timer?.resume()
+        var timer: RepeatingTimer? = nil
 
-    }
+        public var monitoredProperties: [MonitoredProperty] = [MonitoredProperty]()
+        //  public var monitoredContracts: [MonitoredContract] = [MonitoredContract]()
+        public var monitoredUserFunctions: [EventLoopRunnableProtocol] = [EventLoopRunnableProtocol]()
 
-    public func stop() {
-        if self.timer != nil {
-            self.timer!.suspend()
-            self.timer = nil
+        public init() {}
+
+        // @available(iOS 10.0, *)
+
+        public func start(_ timeInterval: TimeInterval) {
+            if timer != nil {
+                timer!.suspend()
+                timer = nil
+            }
+
+            timer = RepeatingTimer(timeInterval: timeInterval)
+            timer?.eventHandler = runnable
+            timer?.resume()
+
         }
-    }
 
-    func runnable() {
-        for prop in self.monitoredProperties {
-
-            let function = prop.calledFunction
-            Task {
-                await function(self.web3)
+        public func stop() {
+            if timer != nil {
+                timer!.suspend()
+                timer = nil
             }
         }
 
-        for prop in self.monitoredUserFunctions {
-            Task {
-                await prop.functionToRun()
+        func runnable() {
+//            for prop in monitoredProperties {
+//
+//                let function = prop.calledFunction
+//                Task {
+////                    await function(self.web3)
+//                }
+//            }
+
+            for prop in monitoredUserFunctions {
+                Task {
+                    await prop.functionToRun()
+                }
             }
         }
     }
+
 }
 
 // Thank you https://medium.com/@danielgalasko/a-background-repeating-timer-in-swift-412cecfd2ef9
+
 class RepeatingTimer {
 
     let timeInterval: TimeInterval

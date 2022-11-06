@@ -30,8 +30,8 @@ public struct LegacyEnvelope: AbstractEnvelope {
     public var gasPrice: BigUInt? = 0
     public var gasLimit: BigUInt = 0
 
-    var maxFeePerGas: BigUInt?
-    var maxPriorityFeePerGas: BigUInt?
+    var maxFeePerGas: BigUInt? = nil
+    var maxPriorityFeePerGas: BigUInt? = nil
 
     // legacy chainID Mechanism
     private var explicitChainID: BigUInt? // set directly or via options
@@ -51,7 +51,7 @@ public struct LegacyEnvelope: AbstractEnvelope {
         toReturn += "Gas limit: " + String(describing: self.gasLimit) + "\n"
         toReturn += "To: " + self.to.address + "\n"
         toReturn += "Value: " + String(describing: self.value) + "\n"
-        toReturn += "Data: " + self.data.toHexString().addHexPrefix().lowercased() + "\n"
+        toReturn += "Data: " + self.data.toHexString().add0x.lowercased() + "\n"
         toReturn += "Resolved chainID: " + String(describing: self.chainID) + "\n"
         toReturn += "- Intrinsic chainID: " + String(describing: self.explicitChainID) + "\n"
         toReturn += "- Infered chainID: " + String(describing: self.impliedChainID) + "\n"
@@ -139,7 +139,7 @@ extension LegacyEnvelope {
         guard let sData = rlpItem[RlpKey.sig_s.rawValue]!.data else { return nil }
 
         switch rlpItem[RlpKey.destination.rawValue]!.content {
-        // swiftlint:enable force_unwrapping
+            // swiftlint:enable force_unwrapping
         case .noItem:
             self.to = EthereumAddress.contractDeploymentAddress()
         case .data(let addressData):
@@ -148,7 +148,9 @@ extension LegacyEnvelope {
             } else if addressData.count == 20 {
                 guard let addr = EthereumAddress(addressData) else { return nil }
                 self.to = addr
-            } else { return nil }
+            } else {
+                return nil
+            }
         case .list:
             return nil
         }
@@ -164,6 +166,7 @@ extension LegacyEnvelope {
     }
 
     // memberwise
+
     public init(to: EthereumAddress, nonce: BigUInt = 0,
                 chainID: BigUInt? = nil, value: BigUInt = 0, data: Data,
                 gasPrice: BigUInt = 0, gasLimit: BigUInt = 0,
@@ -181,6 +184,7 @@ extension LegacyEnvelope {
     }
 
 //    public mutating func applyTransaction(_ transaction: CodableTransaction) {
+
 //        // type cannot be changed here, and is ignored
 //        self.nonce = transaction.resolveNonce(self.nonce)
 //        self.gasPrice = transaction.resolveGasPrice(self.gasPrice)
@@ -202,8 +206,12 @@ extension LegacyEnvelope {
                 fields = [self.nonce, self.gasPrice, self.gasLimit, self.to.addressData, self.value, self.data] as [AnyObject]
             }
         }
+//        guard var result = RLP.encode(fields) else { return nil }
+//        result.insert(UInt8(self.type.rawValue), at: 0)
+//        return result
         return RLP.encode(fields)
     }
+
 
     public func getUnmarshalledSignatureData() -> SECP256K1.UnmarshaledSignature? {
         if self.r == 0 && self.s == 0 { return nil }
