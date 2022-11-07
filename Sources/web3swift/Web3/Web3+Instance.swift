@@ -17,10 +17,13 @@ public class Web3 {
 
     public class Provider<API: Web3API> {
         public var api: API
-        public var manager: KeystoreManager? = KeystoreManager.main
+        public lazy var manager: KeystoreManager? = KeystoreManager.main
 
         /// Raw initializer using a Web3Provider protocol object, dispatch queue and request dispatcher.
-        public init(api: API) { self.api = api }
+        public init(api: API, keystore: AbstractKeystore? = nil) {
+            self.api = api
+            if let keystore { manager?.add(keystore) }
+        }
 
         /// Keystore manager can be bound to Web3 instance. If some manager is bound all further account related functions, such
         /// as account listing, transaction signing, etc. are done locally using private keys and accounts found in a manager.
