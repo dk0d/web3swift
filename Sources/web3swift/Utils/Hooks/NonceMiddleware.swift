@@ -3,9 +3,9 @@
 //  Copyright © 2018 Alex Vlasov. All rights reserved.
 //
 
+import Foundation
 import BigInt
 import Core
-import Foundation
 
 public extension Web3.Utils {
 //    fileprivate typealias AssemblyHook = web3.AssemblyHook
@@ -15,8 +15,8 @@ public extension Web3.Utils {
         public var name: String = "Nonce lookup middleware"
         public let queue: DispatchQueue = .init(label: "Nonce middleware queue")
         public var synchronizationPeriod: TimeInterval = 300.0 // 5 minutes
-        var lastSyncTime: Date = .init()
-        var nonceLookups: [EthereumAddress: BigUInt] = .init()
+        var lastSyncTime = Date()
+        var nonceLookups = [EthereumAddress: BigUInt]()
 
         weak var provider: Web3Provider<API>?
 
@@ -42,25 +42,25 @@ public extension Web3.Utils {
         public init() {}
 
         // FIXME: Rewrite this to CodableTransaction
-
-        func preAssemblyFunction(tx: inout CodableTransaction, contract: EthereumContract) -> (CodableTransaction, EthereumContract, Bool) {
-            guard let from = tx.from else {
-                // do nothing
-                return (tx, contract, true)
-            }
-            guard let knownNonce = nonceLookups[from] else {
-                return (tx, contract, true)
-            }
-
-            let newNonce = knownNonce + 1
-
-            queue.async {
-                self.nonceLookups[from] = newNonce
-            }
-
-            tx.noncePolicy = .exact(newNonce)
-            return (tx, contract, true)
-        }
+//        func preAssemblyFunction(tx: inout CodableTransaction, contract: EthereumContract) -> (CodableTransaction, EthereumContract, Bool) {
+//            guard let from = tx.from else {
+//                // do nothing
+//                return (tx, contract, true)
+//            }
+//            guard let knownNonce = self.nonceLookups[from] else {
+//                return (tx, contract, true)
+//            }
+//
+//            let newNonce = knownNonce + 1
+//
+//            self.queue.async {
+//                self.nonceLookups[from] = newNonce
+//            }
+//
+//            // FIXME:
+//            tx.noncePolicy = .exact(newNonce)
+//            return (tx, contract, true)
+//        }
 
 //        func postSubmissionFunction(result: TransactionSendingResult) {
 

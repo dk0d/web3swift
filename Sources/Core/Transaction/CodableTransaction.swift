@@ -4,14 +4,13 @@
 //
 //  Additions for new transaction types by Mark Loit 2022
 
-import BigInt
 import Foundation
+import BigInt
 
-///  Structure capable of carying the parameters for any transaction type.
-///  while all fields in this struct are optional, they are not necessarily
-///  optional for the type of transaction they apply to.
+/// Structure capable of carying the parameters for any transaction type.
+/// While most fields in this struct are optional, they are not necessarily
+/// optional for the type of transaction they apply to.
 public struct CodableTransaction {
-    public typealias NoncePolicy = BlockNumber
     /// internal acccess only. The transaction envelope object itself that contains all the transaction data
     /// and type specific implementation
     internal var envelope: AbstractEnvelope
@@ -56,41 +55,40 @@ public struct CodableTransaction {
     }
 
     // MARK: - Ruins signing and decoding tests if tied to envelop
-
     /// any additional data for the transaction
     public var data: Data
 
     // MARK: - Properties transaction type related either sends to a node if exist
 
     /// the nonce for the transaction
-    internal var nonce: BigUInt {
+    public var nonce: BigUInt {
         get { envelope.nonce }
         set { envelope.nonce = newValue }
     }
 
     /// the max number of gas units allowed to process this transaction
-    internal var gasLimit: BigUInt {
+    public var gasLimit: BigUInt {
         get { envelope.gasLimit }
-        set { envelope.gasLimit = newValue }
+        set { return envelope.gasLimit = newValue }
     }
 
     /// the price per gas unit for the tranaction (Legacy and EIP-2930 only)
-    internal var gasPrice: BigUInt? {
+    public var gasPrice: BigUInt? {
         get { envelope.gasPrice }
-        set { envelope.gasPrice = newValue }
+        set { return envelope.gasPrice = newValue }
     }
 
     /// the max base fee per gas unit (EIP-1559 only)
     /// this value must be >= baseFee + maxPriorityFeePerGas
-    internal var maxFeePerGas: BigUInt? {
+    public var maxFeePerGas: BigUInt? {
         get { envelope.maxFeePerGas }
-        set { envelope.maxFeePerGas = newValue }
+        set { return envelope.maxFeePerGas = newValue }
     }
 
     /// the maximum tip to pay the miner (EIP-1559 only)
-    internal var maxPriorityFeePerGas: BigUInt? {
+    public var maxPriorityFeePerGas: BigUInt? {
         get { envelope.maxPriorityFeePerGas }
-        set { envelope.maxPriorityFeePerGas = newValue }
+        set { return envelope.maxPriorityFeePerGas = newValue }
     }
 
     public var callOnBlock: BlockNumber?
@@ -175,35 +173,10 @@ public struct CodableTransaction {
         envelope = env
         // FIXME: This is duplication and should be fixed.
         data = Data()
-        noncePolicy = .latest
-        gasLimitPolicy = .automatic
-        gasPricePolicy = .automatic
-        maxFeePerGasPolicy = .automatic
-        maxPriorityFeePerGasPolicy = .automatic
     }
 
     /// - Returns: a raw bytestream of the transaction, encoded according to the transactionType
     public func encode(for type: EncodeType = .transaction) -> Data? { envelope.encode(for: type) }
-
-    public mutating func resolve(api: any Web3API) async throws {
-        gasLimit = try await gasLimitPolicy.resolve(api: api, transaction: self)
-
-        if from != nil || sender != nil {
-            nonce = try await resolveNonce(api: api)
-        }
-        if case .eip1559 = type {
-            maxFeePerGas = try await maxFeePerGasPolicy.resolve(api: api)
-            maxPriorityFeePerGas = try await maxPriorityFeePerGasPolicy.resolve(api: api)
-        } else {
-            gasPrice = try await gasPricePolicy.resolve(provider: api)
-        }
-    }
-
-    public var noncePolicy: NoncePolicy
-    public var maxFeePerGasPolicy: FeePerGasPolicy
-    public var maxPriorityFeePerGasPolicy: PriorityFeePerGasPolicy
-    public var gasPricePolicy: GasPricePolicy
-    public var gasLimitPolicy: GasLimitPolicy
 
     public static var emptyTransaction = CodableTransaction(to: EthereumAddress.contractDeploymentAddress())
 }
@@ -231,12 +204,6 @@ extension CodableTransaction: Codable {
         envelope = env
         // FIXME: This is duplication and should be fixed.
         data = Data()
-
-        noncePolicy = .latest
-        gasLimitPolicy = .automatic
-        gasPricePolicy = .automatic
-        maxFeePerGasPolicy = .automatic
-        maxPriorityFeePerGasPolicy = .automatic
 
         // capture any metadata that might be present
         meta = try TransactionMetadata(from: decoder)
@@ -286,95 +253,7 @@ extension CodableTransaction: Codable {
             try container.encode(from, forKey: .from)
         }
     }
-}
 
-public protocol PolicyResolvable {
-    func resolve(api: Web3API, transaction: CodableTransaction?) async throws -> BigUInt
-}
-
-public extension CodableTransaction {
-    enum GasLimitPolicy {
-        case automatic
-        case manual(BigUInt)
-        case limited(BigUInt)
-        case withMargin(Double)
-
-        func resolve(api: Web3API, transaction: CodableTransaction?) async throws -> BigUInt {
-            guard let transaction = transaction else { throw Web3Error.valueError }
-            let request: APIRequest = .estimateGas(transaction, transaction.callOnBlock ?? .latest)
-            let response: APIResponse<BigUInt> = try await APIRequest.send(apiRequest: request, with: api)
-            switch self {
-            case .automatic, .withMargin:
-                return response.result
-            case let .manual(value):
-                return value
-            case let .limited(limit):
-                if limit <= response.result {
-                    return response.result
-                } else {
-                    return limit
-                }
-            }
-        }
-    }
-
-    enum GasPricePolicy {
-        case automatic
-        case manual(BigUInt)
-        case withMargin(Double)
-
-        func resolve(provider: Web3API, transaction _: CodableTransaction? = nil) async throws -> BigUInt {
-            let oracle = Oracle(provider)
-            switch self {
-            case .automatic, .withMargin:
-                return await oracle.gasPriceLegacyPercentiles().max() ?? 0
-            case let .manual(value):
-                return value
-            }
-        }
-    }
-
-    enum PriorityFeePerGasPolicy: PolicyResolvable {
-        case automatic
-        case manual(BigUInt)
-
-        public func resolve(api: Web3API, transaction _: CodableTransaction? = nil) async throws -> BigUInt {
-            let oracle = Oracle(api)
-            switch self {
-            case .automatic:
-                return await oracle.tipFeePercentiles().max() ?? 0
-            case let .manual(value):
-                return value
-            }
-        }
-    }
-
-    enum FeePerGasPolicy: PolicyResolvable {
-        case automatic
-        case manual(BigUInt)
-
-        public func resolve(api: Web3API, transaction _: CodableTransaction? = nil) async throws -> BigUInt {
-            let oracle = Oracle(api)
-            switch self {
-            case .automatic:
-                return await oracle.baseFeePercentiles().max() ?? 0
-            case let .manual(value):
-                return value
-            }
-        }
-    }
-
-    internal func resolveNonce(api: Web3API) async throws -> BigUInt {
-        switch noncePolicy {
-        case .pending, .latest, .earliest:
-            guard let address = from ?? sender else { throw Web3Error.valueError }
-            let request: APIRequest = .getTransactionCount(address.address, callOnBlock ?? .latest)
-            let response: APIResponse<BigUInt> = try await APIRequest.send(apiRequest: request, with: api)
-            return response.result
-        case let .exact(value):
-            return value
-        }
-    }
 }
 
 extension CodableTransaction: CustomStringConvertible {
@@ -423,12 +302,7 @@ public extension CodableTransaction {
         // FIXME: This is duplication and should be fixed.
         self.data = data
         self.accessList = accessList
-        gasLimitPolicy = .automatic
-        noncePolicy = .pending
-        gasPricePolicy = .automatic
-        maxFeePerGasPolicy = .automatic
-        maxPriorityFeePerGasPolicy = .automatic
-        callOnBlock = .latest
+        self.callOnBlock = .latest
 
         envelope = EnvelopeFactory.createEnvelope(type: type, to: to, nonce: nonce, chainID: chainID, value: value, data: data, gasLimit: gasLimit, maxFeePerGas: maxFeePerGas, maxPriorityFeePerGas: maxPriorityFeePerGas, gasPrice: gasPrice, accessList: accessList, v: v, r: r, s: s)
     }

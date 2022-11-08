@@ -3,9 +3,9 @@
 //  Copyright © 2018 Alex Vlasov. All rights reserved.
 //
 
+import Foundation
 import BigInt
 import Core
-import Foundation
 
 // FIXME: Rewrite this to CodableTransaction
 
@@ -15,6 +15,7 @@ public class ReadOperation {
     public var contract: EthereumContract
     public var method: String
     public var data: Data? { transaction.data }
+    var resolver: PolicyResolver
 
     // FIXME: Rewrite this to CodableTransaction
 
@@ -30,11 +31,11 @@ public class ReadOperation {
         if let chain {
             self.transaction.chainID = chain.chainID
         }
+        resolver = PolicyResolver()
     }
 
     public func callContractMethod<API: Web3API>(provider: Web3Provider<API>) async throws -> [String: Any] {
-        try await transaction.resolve(api: provider.api)
-
+        try await resolver.resolveAll(for: &transaction, api: provider.api)
         // MARK: Read data from ABI flow
 
         // FIXME: This should be dropped, and after `execute()` call, just to decode raw data.
