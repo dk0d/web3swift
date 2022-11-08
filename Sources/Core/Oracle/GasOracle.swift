@@ -11,9 +11,6 @@ import Foundation
 /// Oracle is the class to do a transaction fee suggestion
 public final class Oracle {
 
-    /// Web3 provider by which accessing to the blockchain
-    private let web3api: Web3API
-
     private var feeHistory: FeeHistory?
 
     /// Block to start getting history backward
@@ -44,8 +41,12 @@ public final class Oracle {
     ///   - block: Number of block from which counts starts backward
     ///   - blockCount: Count of block to calculate statistics
     ///   - percentiles: Percentiles of fees to which result of predictions will be split in
-    public init(_ provider: Web3API, block: BlockNumber = .latest, blockCount: BigUInt = 20, percentiles: [Double] = [25, 50, 75], cacheTimeout: Double = 10) {
-        web3api = provider
+    public init(
+        block: BlockNumber = .latest,
+        blockCount: BigUInt = 20,
+        percentiles: [Double] = [25, 50, 75],
+        cacheTimeout: Double = 10
+    ) {
         self.block = block
         self.blockCount = blockCount
         self.percentiles = percentiles
@@ -62,12 +63,12 @@ public final class Oracle {
     /// - Returns: `[min, middle, max].count == self.percentiles.count`
     private func soft(twoDimentsion array: [[BigUInt]]) -> [BigUInt] {
         array.compactMap { percentileArray -> [BigUInt]? in
-            guard !percentileArray.isEmpty else { return nil }
-            // swiftlint:disable force_unwrapping
-            return [percentileArray.mean()!]
-            // swiftlint:enable force_unwrapping
-        }
-        .flatMap { $0 }
+                 guard !percentileArray.isEmpty else { return nil }
+                 // swiftlint:disable force_unwrapping
+                 return [percentileArray.mean()!]
+                 // swiftlint:enable force_unwrapping
+             }
+             .flatMap { $0 }
     }
 
     /// Method calculates percentiles array based on `self.percetniles` value
@@ -79,14 +80,14 @@ public final class Oracle {
         }
     }
 
-    private func suggestGasValues() async throws -> FeeHistory {
+    private func suggestGasValues(api: Web3API) async throws -> FeeHistory {
         /// This is some kind of cache.
         /// It stores about 10 seconds, than it rewrites it with newer data.
 
         /// We're explicitly checking that feeHistory is not nil before force unwrapping it.
         guard let feeHistory = feeHistory, !forceDropCache, feeHistory.timestamp.distance(to: Date()) < cacheTimeout else {
             // swiftlint: disable force_unwrapping
-            let result: FeeHistory = try await combineRequest(request: .feeHistory(blockCount, block, percentiles))
+            let result: FeeHistory = try await combineRequest(request: .feeHistory(blockCount, block, percentiles), api: api)
             feeHistory = result
             return feeHistory!
             // swiftlint: enable force_unwrapping
@@ -98,45 +99,45 @@ public final class Oracle {
     /// Suggesting tip values
     /// - Returns: `[percentile_1, percentile_2, percentile_3, ...].count == self.percentile.count`
     /// by default there's 3 percentile.
-    private func suggestTipValue() async throws -> [BigUInt] {
+    private func suggestTipValue(api: Web3API) async throws -> [BigUInt] {
         var rearrengedArray: [[BigUInt]] = []
 
         /// reaarange `[[min, middle, max]]` to `[[min], [middle], [max]]`
-        try await suggestGasValues().reward
-            .forEach { percentiles in
-                percentiles.enumerated().forEach { index, percentile in
-                    /// if `rearrengedArray` have not that enough items
-                    /// as `percentiles` current item index
-                    if rearrengedArray.endIndex <= index {
-                        /// append its as an array
-                        rearrengedArray.append([percentile])
-                    } else {
-                        /// append `percentile` value to appropriate `percentiles` array.
-                        rearrengedArray[index].append(percentile)
-                    }
-                }
-            }
+        try await suggestGasValues(api: api).reward
+                                    .forEach { percentiles in
+                                        percentiles.enumerated().forEach { index, percentile in
+                                            /// if `rearrengedArray` have not that enough items
+                                            /// as `percentiles` current item index
+                                            if rearrengedArray.endIndex <= index {
+                                                /// append its as an array
+                                                rearrengedArray.append([percentile])
+                                            } else {
+                                                /// append `percentile` value to appropriate `percentiles` array.
+                                                rearrengedArray[index].append(percentile)
+                                            }
+                                        }
+                                    }
         return soft(twoDimentsion: rearrengedArray)
     }
 
-    private func suggestBaseFee() async throws -> [BigUInt] {
-        feeHistory = try await suggestGasValues()
+    private func suggestBaseFee(api: Web3API) async throws -> [BigUInt] {
+        feeHistory = try await suggestGasValues(api: api)
         return calculatePercentiles(for: feeHistory!.baseFeePerGas)
     }
 
-    private func combineRequest<Result>(request: APIRequest) async throws -> Result where Result: APIResultType {
-        let response: APIResponse<Result> = try await APIRequest.send(apiRequest: request, with: web3api)
+    private func combineRequest<Result>(request: APIRequest, api: Web3API) async throws -> Result where Result: APIResultType {
+        let response: APIResponse<Result> = try await APIRequest.send(apiRequest: request, with: api)
         return response.result
     }
 
-    private func suggestGasFeeLegacy() async throws -> [BigUInt] {
+    private func suggestGasFeeLegacy(api: Web3API) async throws -> [BigUInt] {
         var latestBlockNumber: BigUInt = 0
         switch block {
         case .latest:
-            let block: BigUInt = try await combineRequest(request: .blockNumber)
+            let block: BigUInt = try await combineRequest(request: .blockNumber, api: api)
             latestBlockNumber = block
         case let .exact(number): latestBlockNumber = number
-        // Error throws since pending and erliest are unable to be used in this method.
+            // Error throws since pending and erliest are unable to be used in this method.
         default: throw Web3Error.valueError
         }
 
@@ -147,13 +148,13 @@ public final class Oracle {
 
         // TODO: Make me work with cache
         let blocks = try await withThrowingTaskGroup(of: Block.self, returning: [Block].self) { group in
-            (latestBlockNumber - blockCount ... latestBlockNumber)
-                .forEach { block in
-                    group.addTask {
-                        let result: Block = try await self.combineRequest(request: .getBlockByNumber(.exact(block), true))
-                        return result
-                    }
+            (latestBlockNumber - blockCount...latestBlockNumber)
+            .forEach { block in
+                group.addTask {
+                    let result: Block = try await self.combineRequest(request: .getBlockByNumber(.exact(block), true), api: api)
+                    return result
                 }
+            }
 
             var collected = [Block]()
 
@@ -165,12 +166,12 @@ public final class Oracle {
         }
 
         let lastNthBlockGasPrice = blocks.flatMap { b -> [CodableTransaction] in
-            b.transactions.compactMap { t -> CodableTransaction? in
-                guard case let .transaction(transaction) = t else { return nil }
-                return transaction
-            }
-        }
-        .compactMap { $0.meta?.gasPrice ?? 0 }
+                                             b.transactions.compactMap { t -> CodableTransaction? in
+                                                 guard case let .transaction(transaction) = t else { return nil }
+                                                 return transaction
+                                             }
+                                         }
+                                         .compactMap { $0.meta?.gasPrice ?? 0 }
 
         return calculatePercentiles(for: lastNthBlockGasPrice)
     }
@@ -183,8 +184,8 @@ public extension Oracle {
     ///
     /// - Returns: `[percentile_1, percentile_2, percentile_3, ...].count == self.percentile.count`
     /// empty array if failed to predict. By default there's 3 percentile.
-    func baseFeePercentiles() async -> [BigUInt] {
-        guard let value = try? await suggestBaseFee() else { return [] }
+    func baseFeePercentiles(api: Web3API) async -> [BigUInt] {
+        guard let value = try? await suggestBaseFee(api: api) else { return [] }
         return value
     }
 
@@ -194,8 +195,8 @@ public extension Oracle {
     ///
     /// - Returns: `[percentile_1, percentile_2, percentile_3, ...].count == self.percentile.count`
     /// empty array if failed to predict. By default there's 3 percentile.
-    func tipFeePercentiles() async -> [BigUInt] {
-        guard let value = try? await suggestTipValue() else { return [] }
+    func tipFeePercentiles(api: Web3API) async -> [BigUInt] {
+        guard let value = try? await suggestTipValue(api: api) else { return [] }
         return value
     }
 
@@ -205,13 +206,13 @@ public extension Oracle {
     ///
     /// - Returns: `[percentile_1, percentile_2, percentile_3, ...].count == self.percentile.count`
     /// nil if failed to predict. By default there's 3 percentile.
-    func bothFeesPercentiles() async -> (baseFee: [BigUInt], tip: [BigUInt])? {
+    func bothFeesPercentiles(api: Web3API) async -> (baseFee: [BigUInt], tip: [BigUInt])? {
         var baseFeeArr: [BigUInt] = []
         var tipArr: [BigUInt] = []
-        if let baseFee = try? await suggestBaseFee() {
+        if let baseFee = try? await suggestBaseFee(api: api) {
             baseFeeArr = baseFee
         }
-        if let tip = try? await suggestTipValue() {
+        if let tip = try? await suggestTipValue(api: api) {
             tipArr = tip
         }
         return (baseFee: baseFeeArr, tip: tipArr)
@@ -223,8 +224,8 @@ public extension Oracle {
     ///
     /// - Returns: `[percentile_1, percentile_2, percentile_3, ...].count == self.percentile.count`
     /// empty array if failed to predict. By default there's 3 percentile.
-    func gasPriceLegacyPercentiles() async -> [BigUInt] {
-        guard let value = try? await suggestGasFeeLegacy() else { return [] }
+    func gasPriceLegacyPercentiles(api: Web3API) async -> [BigUInt] {
+        guard let value = try? await suggestGasFeeLegacy(api: api) else { return [] }
         return value
     }
 }

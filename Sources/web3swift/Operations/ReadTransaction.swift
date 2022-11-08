@@ -35,7 +35,8 @@ public class ReadOperation {
     }
 
     public func callContractMethod<API: Web3API>(provider: Web3Provider<API>) async throws -> [String: Any] {
-        try await resolver.resolveAll(for: &transaction, api: provider.api)
+        try await resolver.resolveAll(for: &transaction, provider: provider)
+
         // MARK: Read data from ABI flow
 
         // FIXME: This should be dropped, and after `execute()` call, just to decode raw data.

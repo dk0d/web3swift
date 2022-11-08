@@ -16,7 +16,7 @@ public class WriteOperation: ReadOperation {
         policies: Policies = .auto,
         password: String
     ) async throws -> TransactionSendingResult {
-        try await resolver.resolve(for: $transaction, api: provider.api, with: policies)
+        try await resolver.resolveAll(for: &transaction, provider: provider, with: policies)
         if let attachedKeystoreManager = provider.manager {
             do {
                 try Web3Signer.signTX(transaction: &transaction,
@@ -38,7 +38,7 @@ public class WriteOperation: ReadOperation {
 
     func nonce<API: Web3API>(
         provider: Web3Provider<API>,
-        for policy: CodableTransaction.NoncePolicy,
+        for policy: NoncePolicy,
         from: EthereumAddress
     ) async throws -> BigUInt {
         switch policy {
