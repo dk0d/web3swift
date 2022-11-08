@@ -19,8 +19,23 @@ public struct HexNumber: Codable, Hashable {
 
     public init(_ string: String) { rawValue = string.add0x }
 
-    public init?(_ double: Double) {
-        let b = BigInt(double)
+
+    public init?(
+        _ floatLiteral: FloatLiteralType,
+        numDecimals: Int = 0
+    ) {
+        self.init(doubleString: "\(floatLiteral)", numDecimals: numDecimals)
+    }
+
+    public init?(
+        doubleString: String,
+        numDecimals: Int
+    ) {
+        guard let d = CoreUtilities.parseToBigUInt(
+            doubleString,
+            decimals: numDecimals
+        ) else { return nil }
+        let b = BigInt(d)
         self.init(b)
     }
 
