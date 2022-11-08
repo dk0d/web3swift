@@ -29,6 +29,12 @@ public class PolicyResolver {
         if case .eip1559 = tx.type {
             tx.maxFeePerGas = await resolveGasBaseFee(for: policies.maxFeePerGasPolicy, api: provider.api)
             tx.maxPriorityFeePerGas = await resolveGasPriorityFee(for: policies.maxPriorityFeePerGasPolicy, api: provider.api)
+            if let priorityGas = tx.maxPriorityFeePerGas,
+               let feePerGas = tx.maxFeePerGas {
+                guard priorityGas < feePerGas else {
+                    throw Web3Error.processingError(desc: "Max priority fee per gas is higehr than max fee per gas")
+                }
+            }
         } else {
             tx.gasPrice = await resolveGasPrice(for: policies.gasPricePolicy, api: provider.api)
         }

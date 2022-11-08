@@ -34,7 +34,7 @@ extension Web3Provider {
     public func send(raw transaction: CodableTransaction) async throws -> TransactionSendingResult {
         var trans = transaction
         guard let from = transaction.from, try signTX(transaction: &trans, account: from) else { throw Web3Error.walletError }
-        guard let hash = trans.hash?.toHexString().add0x else { throw Web3Error.walletError }
+        guard let hash = trans.encode(for: .transaction)?.toHexString().add0x else { throw Web3Error.dataError }
         let request: APIRequest = .sendRawTransaction(hash)
         let response: APIResponse<Hash> = try await APIRequest.send(apiRequest: request, with: api)
         return TransactionSendingResult(transaction: transaction, hash: response.result)

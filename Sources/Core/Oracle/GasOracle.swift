@@ -85,7 +85,10 @@ public final class Oracle {
         /// It stores about 10 seconds, than it rewrites it with newer data.
 
         /// We're explicitly checking that feeHistory is not nil before force unwrapping it.
-        guard let feeHistory = feeHistory, !forceDropCache, feeHistory.timestamp.distance(to: Date()) < cacheTimeout else {
+        guard let feeHistory = feeHistory,
+              !forceDropCache,
+              feeHistory.timestamp.distance(to: Date()) < cacheTimeout
+        else {
             // swiftlint: disable force_unwrapping
             let result: FeeHistory = try await combineRequest(request: .feeHistory(blockCount, block, percentiles), api: api)
             feeHistory = result
@@ -104,19 +107,19 @@ public final class Oracle {
 
         /// reaarange `[[min, middle, max]]` to `[[min], [middle], [max]]`
         try await suggestGasValues(api: api).reward
-                                    .forEach { percentiles in
-                                        percentiles.enumerated().forEach { index, percentile in
-                                            /// if `rearrengedArray` have not that enough items
-                                            /// as `percentiles` current item index
-                                            if rearrengedArray.endIndex <= index {
-                                                /// append its as an array
-                                                rearrengedArray.append([percentile])
-                                            } else {
-                                                /// append `percentile` value to appropriate `percentiles` array.
-                                                rearrengedArray[index].append(percentile)
+                                            .forEach { percentiles in
+                                                percentiles.enumerated().forEach { index, percentile in
+                                                    /// if `rearrengedArray` have not that enough items
+                                                    /// as `percentiles` current item index
+                                                    if rearrengedArray.endIndex <= index {
+                                                        /// append its as an array
+                                                        rearrengedArray.append([percentile])
+                                                    } else {
+                                                        /// append `percentile` value to appropriate `percentiles` array.
+                                                        rearrengedArray[index].append(percentile)
+                                                    }
+                                                }
                                             }
-                                        }
-                                    }
         return soft(twoDimentsion: rearrengedArray)
     }
 

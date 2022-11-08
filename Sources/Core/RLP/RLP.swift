@@ -293,5 +293,5 @@ public enum RLP {
 }
 
 private extension Data {
-    var bytes: [UInt8] { Array(self) }
+    var bytes: Bytes { Array(self) }
 }
