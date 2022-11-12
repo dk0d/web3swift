@@ -282,10 +282,8 @@ public extension DefaultContractProtocol {
         let method = Data.fromHex(method) == nil ? method : method.add0x.lowercased()
 
         // MARK: - Encoding ABI Data flow
-
-        guard let abiMethod = methods[method]?.first,
-              var encodedData = abiMethod.encodeParameters(parameters)
-        else { return nil }
+        guard let abiMethod = methods[method]?.first(where: { $0.inputs.count == parameters.count }),
+              var encodedData = abiMethod.encodeParameters(parameters) else { return nil }
 
         // Extra data just appends in the end of parameters data
         if let extraData = extraData {
