@@ -12,6 +12,7 @@ public protocol ContractTransfer: BaseContract {
 }
 
 extension ContractTransfer {
+
     public func transfer<API: Web3API>(
         from: EthereumAddress,
         to: EthereumAddress,

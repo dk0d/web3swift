@@ -11,7 +11,8 @@ public typealias Web3Contract = Web3.Contract
 
 extension Web3Provider {
 
-    /// The contract instance. Initialized in runtime from ABI string (that is a JSON array). In addition an existing contract address can be supplied to provide the default "to" address in all the following requests. ABI version is 2 by default and should not be changed.
+    /// The contract instance. Initialized in runtime from ABI string (that is a JSON array). In addition an existing contract address can be supplied to
+    /// provide the default "to" address in all the following requests. ABI version is 2 by default and should not be changed.
     public func contract(
         _ abiString: String,
         at: EthereumAddress? = nil,
