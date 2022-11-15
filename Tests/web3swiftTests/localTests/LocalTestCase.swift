@@ -28,7 +28,7 @@ class LocalTestCase: XCTestCase {
         let writeTX = contract!.createWriteOperation("fallback")!
         writeTX.transaction.from = from
         writeTX.transaction.value = value
-        let policies = Policies(gasLimitPolicy: .manual(78423), gasPricePolicy: .manual(20000000000))
+        let policies = Policies(gasLimitPolicy: .manual(78423),ValueResolutionPolicy: .manual(20000000000))
         for _ in block..<25 {
             _ = try! await writeTX.writeToChain(password: "", policies: policies)
         }

@@ -22,9 +22,9 @@ extension ContractApproval {
         provider: Web3Provider<API>
     ) async throws -> WriteOperation {
         let contract = self.contract(with: provider)
-        transaction.from = from
-        transaction.to = address
-        transaction.callOnBlock = .latest
+        contract.transaction.from = from
+        contract.transaction.to = address
+        contract.transaction.callOnBlock = .latest
         // get the decimals manually
         let decimals: BigUInt = try await read(contract: contract, provider: provider, method: "decimals")
         let intDecimals = Int(decimals)

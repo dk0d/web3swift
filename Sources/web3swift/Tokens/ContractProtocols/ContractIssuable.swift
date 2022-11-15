@@ -14,15 +14,15 @@ public protocol ContractIssuable: BaseContract {
 extension ContractIssuable {
     public func isIssuable<API: Web3API>(_ provider: Web3Provider<API>) async throws -> Bool {
         let contract = self.contract(with: provider)
-        transaction.callOnBlock = .latest
+        contract.transaction.callOnBlock = .latest
         return try await read(contract: contract, provider: provider, method: "isIssuable")
     }
 
     public func issue<API: Web3API>(from: EthereumAddress, tokenHolder: EthereumAddress, amount: String, data: [UInt8], provider: Web3Provider<API>) async throws -> WriteOperation {
         let contract = self.contract(with: provider)
-        transaction.from = from
-        transaction.to = address
-        transaction.callOnBlock = .latest
+        contract.transaction.from = from
+        contract.transaction.to = address
+        contract.transaction.callOnBlock = .latest
 
         // get the decimals manually
         let decimals: BigUInt = try await read(contract: contract, provider: provider, method: "decimals")

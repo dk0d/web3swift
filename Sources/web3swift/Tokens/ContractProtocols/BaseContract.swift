@@ -15,7 +15,6 @@ public enum ContractReadProperties {
 
 public protocol BaseContract: AnyObject {
     var address: EthereumAddress { get set }
-    var transaction: CodableTransaction { get set }
     var abi: Web3ABI { get }
     var properties: [ContractReadProperties] { get }
     var hasReadProperties: Bool { get set }
@@ -89,6 +88,26 @@ extension BaseContract {
         }
         return result
     }
+
+
+    public func parseAmount<API: Web3API>(
+        contract: Web3Contract,
+        provider: Web3Provider<API>,
+        amount: String
+    ) async throws -> BigUInt {
+        // get the decimals manually
+        let decimals: BigUInt = try await read(
+            contract: contract,
+            provider: provider,
+            method: "decimals"
+        )
+        let intDecimals = Int(decimals)
+        guard let value = Utilities.parseToBigUInt(amount, decimals: intDecimals) else {
+            throw Web3Error.inputError(desc: "Can not parse inputted amount")
+        }
+        return value
+    }
+
 
 
 }

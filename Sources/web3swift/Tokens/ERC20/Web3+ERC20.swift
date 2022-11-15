@@ -17,7 +17,6 @@ protocol IERC20: ContractApproval, ContractTransfer, ContractBalance, ContractSu
 // FIXME: Rewrite this to CodableTransaction
 public class ERC20: IERC20 {
 
-    public var transaction: CodableTransaction
     public var address: EthereumAddress
     public var properties: [ContractReadProperties] = [
         .name(nil),

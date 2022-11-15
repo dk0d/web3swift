@@ -15,7 +15,7 @@ public protocol ContractBalance: BaseContract {
 extension ContractBalance {
     public func getBalance<API: Web3API>(account: EthereumAddress, provider: Web3Provider<API>) async throws -> BigUInt {
         let contract = self.contract(with: provider)
-        transaction.callOnBlock = .latest
+        contract.transaction.callOnBlock = .latest
         return try await read(
             contract: contract,
             provider: provider,

@@ -20,33 +20,29 @@ extension ContractTransfer {
         provider: Web3Provider<API>
     ) async throws -> WriteOperation {
         let contract = self.contract(with: provider)
-        transaction.from = from
-        transaction.to = address
-        transaction.callOnBlock = .latest
+        contract.transaction.from = from
+        contract.transaction.to = address
+        contract.transaction.callOnBlock = .latest
 
         // get the decimals manually
-        let decimals: BigUInt = try await read(contract: contract, provider: provider, method: "decimals")
-        let intDecimals = Int(decimals)
-        guard let value = Utilities.parseToBigUInt(amount, decimals: intDecimals) else {
-            throw Web3Error.inputError(desc: "Can not parse inputted amount")
-        }
+        let value = try await parseAmount(contract: contract, provider: provider, amount: amount)
         let tx = contract.createWriteOperation("transfer", parameters: [to, value] as [AnyObject])!
         return tx
     }
 
-    public func transferFrom<API: Web3API>(from: EthereumAddress, to: EthereumAddress, originalOwner: EthereumAddress, amount: String, provider: Web3Provider<API>) async throws -> WriteOperation {
+    public func transferFrom<API: Web3API>(
+        from: EthereumAddress,
+        to: EthereumAddress,
+        originalOwner: EthereumAddress,
+        amount: String, provider: Web3Provider<API>
+    ) async throws -> WriteOperation {
         let contract = self.contract(with: provider)
-        transaction.from = from
-        transaction.to = address
-        transaction.callOnBlock = .latest
+        contract.transaction.from = from
+        contract.transaction.to = address
+        contract.transaction.callOnBlock = .latest
 
         // get the decimals manually
-        let decimals: BigUInt = try await read(contract: contract, provider: provider, method: "decimals")
-        let intDecimals = Int(decimals)
-        guard let value = Utilities.parseToBigUInt(amount, decimals: intDecimals) else {
-            throw Web3Error.inputError(desc: "Can not parse inputted amount")
-        }
-
+        let value = try await parseAmount(contract: contract, provider: provider, amount: amount)
         let tx = contract.createWriteOperation("transferFrom", parameters: [originalOwner, to, value] as [AnyObject])!
         return tx
     }
@@ -69,11 +65,7 @@ extension ContractTransferWithData {
         transaction.callOnBlock = .latest
 
         // get the decimals manually
-        let decimals: BigUInt = try await read(contract: contract, provider: provider, method: "decimals")
-        let intDecimals = Int(decimals)
-        guard let value = Utilities.parseToBigUInt(amount, decimals: intDecimals) else {
-            throw Web3Error.inputError(desc: "Can not parse inputted amount")
-        }
+        let value = try await parseAmount(contract: contract, provider: provider, amount: amount)
         let tx = contract.createWriteOperation("transferWithData", parameters: [to, value, data] as [AnyObject])!
         return tx
     }
@@ -90,13 +82,8 @@ extension ContractTransferWithData {
         transaction.from = from
         transaction.to = self.address
         transaction.callOnBlock = .latest
-
         // get the decimals manually
-        let decimals: BigUInt = try await read(contract: contract, provider: provider, method: "decimals")
-        let intDecimals = Int(decimals)
-        guard let value = Utilities.parseToBigUInt(amount, decimals: intDecimals) else {
-            throw Web3Error.inputError(desc: "Can not parse inputted amount")
-        }
+        let value = try await parseAmount(contract: contract, provider: provider, amount: amount)
         let tx = contract.createWriteOperation("transferFromWithData", parameters: [originalOwner, to, value, data] as [AnyObject])!
         return tx
     }

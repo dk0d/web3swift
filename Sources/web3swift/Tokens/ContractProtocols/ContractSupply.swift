@@ -13,7 +13,7 @@ public protocol ContractSupply: BaseContract {
 extension ContractSupply {
     public func totalSupply<API: Web3API>(_ provider: Web3Provider<API>) async throws -> BigUInt {
         let contract = self.contract(with: provider)
-        transaction.callOnBlock = .latest
+        contract.transaction.callOnBlock = .latest
         let result = try await contract
         .createReadOperation("totalSupply", parameters: [AnyObject](), extraData: Data())!
         .callContractMethod(provider: provider)

@@ -20,6 +20,8 @@ public extension Web3.Utils {
 
         weak var provider: Web3Provider<API>?
 
+        public init() {}
+
         public func functionToRun() async {
             guard let provider = provider else { return }
             let knownKeys = Array(nonceLookups.keys)
@@ -39,7 +41,6 @@ public extension Web3.Utils {
             }
         }
 
-        public init() {}
 
         // FIXME: Rewrite this to CodableTransaction
 //        func preAssemblyFunction(tx: inout CodableTransaction, contract: EthereumContract) -> (CodableTransaction, EthereumContract, Bool) {

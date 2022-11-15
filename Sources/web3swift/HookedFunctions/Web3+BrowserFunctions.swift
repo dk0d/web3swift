@@ -189,10 +189,10 @@ extension Web3.BrowserFunctions {
 //            var transaction = trans
 //            guard let from = transaction.from else {return nil}
 //            guard let keystoreManager = self.web3.provider.attachedKeystoreManager else {return nil}
-//            guard let gasPricePolicy = transaction.gasPrice else {return nil}
+//            guard letValueResolutionPolicy = transaction.gasPrice else {return nil}
 //            guard let gasLimitPolicy = transaction.gasLimit else {return nil}
 //            guard let noncePolicy = transaction.nonce else {return nil}
-//            switch gasPricePolicy {
+//            switchValueResolutionPolicy {
 //            case .manual(let gasPrice):
 //                transaction.parameters.gasPrice = gasPrice
 //            default:

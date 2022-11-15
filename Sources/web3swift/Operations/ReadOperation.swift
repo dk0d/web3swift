@@ -18,7 +18,6 @@ public class ReadOperation {
     var resolver: PolicyResolver
 
     // FIXME: Rewrite this to CodableTransaction
-
     public init(
         transaction: CodableTransaction = CodableTransaction.emptyTransaction,
         contract: EthereumContract,

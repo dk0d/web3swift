@@ -19,7 +19,7 @@ extension ContractAllowance {
         provider: Web3Provider<API>
     ) async throws -> BigUInt {
         let contract = self.contract(with: provider)
-        transaction.callOnBlock = .latest
+        contract.transaction.callOnBlock = .latest
         let result = try await contract
         .createReadOperation("allowance", parameters: [originalOwner, delegate] as [AnyObject], extraData: Data())!
         .callContractMethod(provider: provider)
@@ -34,16 +34,18 @@ extension ContractAllowance {
         provider: Web3Provider<API>
     ) async throws -> WriteOperation {
         let contract = self.contract(with: provider)
-        transaction.from = from
-        transaction.to = address
-        transaction.callOnBlock = .latest
+        contract.transaction.from = from
+        contract.transaction.to = address
+        contract.transaction.callOnBlock = .latest
 
         // get the decimals manually
         let callResult = try await contract
         .createReadOperation("decimals")!
         .callContractMethod(provider: provider)
         var decimals = BigUInt(0)
-        guard let dec = callResult["0"], let decTyped = dec as? BigUInt else {
+        guard let dec = callResult["0"],
+              let decTyped = dec as? BigUInt
+        else {
             throw Web3Error.inputError(desc: "Contract may be not \(abi.name) compatible, can not get decimals")
         }
         decimals = decTyped

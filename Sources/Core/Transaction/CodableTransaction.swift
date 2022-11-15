@@ -55,7 +55,7 @@ public struct CodableTransaction {
     }
 
     public var data: Data  {
-        get { return envelope.data }
+        get { envelope.data }
         set { envelope.data = newValue }
     }
 
