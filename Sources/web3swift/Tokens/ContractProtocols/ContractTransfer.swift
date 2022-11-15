@@ -60,9 +60,9 @@ extension ContractTransferWithData {
         provider: Web3Provider<API>
     ) async throws -> WriteOperation {
         let contract = self.contract(with: provider)
-        transaction.from = from
-        transaction.to = address
-        transaction.callOnBlock = .latest
+        contract.transaction.from = from
+        contract.transaction.to = address
+        contract.transaction.callOnBlock = .latest
 
         // get the decimals manually
         let value = try await parseAmount(contract: contract, provider: provider, amount: amount)
@@ -79,9 +79,9 @@ extension ContractTransferWithData {
         provider: Web3Provider<API>
     ) async throws -> WriteOperation {
         let contract = self.contract(with: provider)
-        transaction.from = from
-        transaction.to = self.address
-        transaction.callOnBlock = .latest
+        contract.transaction.from = from
+        contract.transaction.to = self.address
+        contract.transaction.callOnBlock = .latest
         // get the decimals manually
         let value = try await parseAmount(contract: contract, provider: provider, amount: amount)
         let tx = contract.createWriteOperation("transferFromWithData", parameters: [originalOwner, to, value, data] as [AnyObject])!

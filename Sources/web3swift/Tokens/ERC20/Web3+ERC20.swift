@@ -26,9 +26,8 @@ public class ERC20: IERC20 {
     public var abi: Web3ABI { .erc20ABI }
     public var hasReadProperties: Bool = false
 
-    public init(address: EthereumAddress, transaction: CodableTransaction = .emptyTransaction) {
+    public init(address: EthereumAddress) {
         self.address = address
-        self.transaction = transaction
     }
 }
 
