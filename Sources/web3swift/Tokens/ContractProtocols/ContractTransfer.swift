@@ -80,8 +80,9 @@ extension ContractTransferWithData {
     ) async throws -> WriteOperation {
         let contract = self.contract(with: provider)
         contract.transaction.from = from
-        contract.transaction.to = self.address
+        contract.transaction.to = address
         contract.transaction.callOnBlock = .latest
+
         // get the decimals manually
         let value = try await parseAmount(contract: contract, provider: provider, amount: amount)
         let tx = contract.createWriteOperation("transferFromWithData", parameters: [originalOwner, to, value, data] as [AnyObject])!

@@ -53,7 +53,7 @@ public protocol EventParserProtocol {
 ///
 
 
-public enum Chain: CaseIterable {
+public enum Chain: CaseIterable, Codable {
 
     case mainnet            // Production
     case ropsten            // Test
@@ -147,7 +147,7 @@ public enum Chain: CaseIterable {
     public var name: String {
         switch self {
         case .mainnet:
-            return "mainnet"
+            return "ethereum"
         case .ropsten:
             return "ropsten"
         case .rinkeby:

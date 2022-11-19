@@ -22,6 +22,22 @@ public enum REST {
     public static var emptyGet: REST { .GET(nil) }
     public static var emptyPost: REST { .POST(nil, nil) }
 
+    public static func post(method: String? = nil, params: [RequestParameter]) -> REST {
+        .POST(method, .array(params))
+    }
+
+    public static func post(method: String? = nil, params: [String: RequestParameter]) -> REST {
+        .POST(method, .dictionary(params))
+    }
+
+    public static func get(params: [RequestParameter]) -> REST {
+        .GET(.array(params))
+    }
+
+    public static func get(params: [String: RequestParameter]) -> REST {
+        .GET(.dictionary(params))
+    }
+
     var name: String {
         switch self {
         case .GET:
