@@ -55,7 +55,7 @@ public protocol EventParserProtocol {
 
 public enum Chain: CaseIterable, Codable {
 
-    case mainnet            // Production
+    case ethereum           // Production
     case ropsten            // Test
     case rinkeby            // Test
     case goerli             // Test
@@ -71,7 +71,7 @@ public enum Chain: CaseIterable, Codable {
 
     public var id: UInt {
         switch self {
-        case .mainnet:
+        case .ethereum:
             return 1            // Production
         case .ropsten:
             return 3            // Test
@@ -100,8 +100,8 @@ public enum Chain: CaseIterable, Codable {
 
     public var chainID: BigUInt { BigUInt(id) }
 
-    public static var allCases: [Chain] { [.mainnet, .goerli, .polygon, .mumbai] }
-    public static var mainnets: [Chain] { [.polygon, .mainnet] }
+    public static var allCases: [Chain] { [.ethereum, .goerli, .polygon, .mumbai] }
+    public static var mainnets: [Chain] { [.polygon, .ethereum] }
     public static var testnets: [Chain] { [.mumbai, .goerli] }
 
     public init?(_ bigUIntValue: BigUInt?) {
@@ -118,7 +118,7 @@ public enum Chain: CaseIterable, Codable {
     public static func from(_ id: UInt, name: String? = nil) -> Chain {
         switch id {
         case 1:            // Production
-            return .mainnet
+            return .ethereum
         case 3:            // Test
             return .ropsten
         case 4:            // Test
@@ -146,7 +146,7 @@ public enum Chain: CaseIterable, Codable {
 
     public var name: String {
         switch self {
-        case .mainnet:
+        case .ethereum:
             return "ethereum"
         case .ropsten:
             return "ropsten"

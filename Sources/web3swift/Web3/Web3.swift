@@ -13,7 +13,7 @@ public extension Web3Provider where API == Web3HttpAPI {
     /// the Network ID for EIP155 purposes
     static func new(_ providerURL: URL) async throws -> Web3Provider<Web3HttpAPI> {
         // FIXME: Change this hardcoded value to dynamicly fethed from a Node
-        guard let api = await Web3HttpAPI(providerURL, chain: .mainnet) else {
+        guard let api = await Web3HttpAPI(providerURL, chain: .ethereum) else {
             throw Web3Error.inputError(desc: "Wrong provider - should be Web3HttpProvider with endpoint scheme http or https")
         }
         return Web3Provider(api: api)
@@ -24,7 +24,7 @@ public extension Web3Provider where API == InfuraAPI {
 
     /// Initialized Web3 instance bound to Infura's mainnet provider.
     static func InfuraMainnetWeb3(accessToken: String? = nil) async -> Web3Provider<API> {
-        let infura = await InfuraAPI(Chain.mainnet, accessToken: accessToken)!
+        let infura = await InfuraAPI(Chain.ethereum, accessToken: accessToken)!
         return Web3Provider(api: infura)
     }
 
