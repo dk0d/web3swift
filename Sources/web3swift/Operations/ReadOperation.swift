@@ -16,8 +16,10 @@ public class ReadOperation {
     public var method: String
     public var data: Data? { transaction.data }
     var resolver: PolicyResolver
+    private(set) var resolved: Bool = false
 
     // FIXME: Rewrite this to CodableTransaction
+
     public init(
         transaction: CodableTransaction = CodableTransaction.emptyTransaction,
         contract: EthereumContract,
@@ -49,4 +51,10 @@ public class ReadOperation {
         }
         return decodedData
     }
+
+    public func resolve<API: Web3API>(policies: Policies = .auto, with provider: Web3Provider<API>, password: String = "") async throws {
+        try await resolver.resolveAll(for: &transaction, provider: provider)
+        resolved = true
+    }
+
 }

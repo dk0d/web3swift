@@ -10,13 +10,14 @@ import Foundation
 /// Wrapper for `EthererumTransaction.data` property appropriate encoding.
 public class WriteOperation: ReadOperation {
 
+
     // FIXME: Rewrite this to CodableTransaction
     public func writeToChain<API: Web3API>(
         provider: Web3Provider<API>,
         policies: Policies = .auto,
         password: String
     ) async throws -> TransactionSendingResult {
-        try await resolver.resolveAll(for: &transaction, provider: provider, with: policies)
+        if !resolved { try await resolve(policies: policies, with: provider) }
         if let attachedKeystoreManager = provider.manager {
             do {
                 try Web3Signer.signTX(transaction: &transaction,

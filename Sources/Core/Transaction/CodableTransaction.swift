@@ -73,7 +73,7 @@ public struct CodableTransaction {
         set { return envelope.gasLimit = newValue }
     }
 
-    /// the price per gas unit for the tranaction (Legacy and EIP-2930 only)
+    /// the price per gas unit for the transaction (Legacy and EIP-2930 only)
     public var gasPrice: BigUInt? {
         get { envelope.gasPrice }
         set { return envelope.gasPrice = newValue }
