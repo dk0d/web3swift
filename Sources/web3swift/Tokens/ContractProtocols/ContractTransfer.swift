@@ -18,6 +18,24 @@ extension ContractTransfer {
         to: EthereumAddress,
         amount: String,
         provider: Web3Provider<API>
+    ) async throws -> (value: BigUInt, op: WriteOperation) {
+        let contract = self.contract(with: provider)
+        contract.transaction.from = from
+        contract.transaction.to = address
+        contract.transaction.callOnBlock = .latest
+
+        // get the decimals manually
+        let value = try await parseAmount(contract: contract, provider: provider, amount: amount)
+        let tx = contract.createWriteOperation("transfer", parameters: [to, value] as [AnyObject])!
+        return (value, tx)
+    }
+
+
+    public func transfer<API: Web3API>(
+        from: EthereumAddress,
+        to: EthereumAddress,
+        amount: String,
+        provider: Web3Provider<API>
     ) async throws -> WriteOperation {
         let contract = self.contract(with: provider)
         contract.transaction.from = from

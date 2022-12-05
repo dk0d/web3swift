@@ -29,9 +29,7 @@ public class ReadOperation {
         self.transaction = transaction
         self.contract = contract
         self.method = method
-        if let chain {
-            self.transaction.chainID = chain.chainID
-        }
+        if let chain { self.transaction.chainID = chain.chainID }
         resolver = PolicyResolver()
     }
 

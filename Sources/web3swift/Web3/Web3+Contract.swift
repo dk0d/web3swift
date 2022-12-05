@@ -138,9 +138,7 @@ extension Web3 {
         ) -> WriteOperation? {
             guard let data = contract.method(method, parameters: parameters, extraData: extraData) else { return nil }
             transaction.data = data
-            if let chain {
-                transaction.chainID = chain.chainID
-            }
+            if let chain { transaction.chainID = chain.chainID }
             return .init(transaction: transaction, contract: contract, method: method)
         }
     }
